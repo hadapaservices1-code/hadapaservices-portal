@@ -50,8 +50,21 @@ export function Sidebar({ userRole, userName, userDepartment }: SidebarProps) {
   const navItems = userRole === "employee" ? employeeNavItems : managerNavItems
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/auth")
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.error('Sign out error:', error)
+      }
+      
+      // Force a hard redirect to clear any cached state
+      window.location.href = "/auth"
+    } catch (err) {
+      console.error('Sign out error:', err)
+      // Even if there's an error, redirect to auth page
+      window.location.href = "/auth"
+    }
   }
 
   return (
