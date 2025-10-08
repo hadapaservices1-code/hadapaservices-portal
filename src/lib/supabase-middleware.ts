@@ -57,10 +57,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If user exists and trying to access auth pages, allow access but log it
+  // If user exists and trying to access auth pages, check if it's a sign out request
   if (user && (request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/login')) {
-    console.log('Middleware - User accessing auth page while logged in:', user.id)
-    // Allow access to auth pages even when logged in (for sign out flow)
+    // Check if this is coming from a sign out action by looking at referer or query params
+    const referer = request.headers.get('referer')
+    const isSignOutRequest = (referer && referer.includes('/dashboard')) || 
+                           request.nextUrl.searchParams.get('signout') === 'true'
+    
+    if (isSignOutRequest) {
+      console.log('Middleware - Allowing auth page access during sign out process')
+      return supabaseResponse
+    } else {
+      console.log('Middleware - Redirecting to dashboard (user exists)')
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

@@ -11,13 +11,16 @@ import {
   AlertCircle,
   Users
 } from "lucide-react"
+import { TimeTrackingCard } from "./time-tracking-card"
+import { TimesheetCard } from "./timesheet-card"
 
 interface EmployeeDashboardProps {
   userName: string
   userDepartment?: string
+  userId?: string
 }
 
-export function EmployeeDashboard({ userName, userDepartment }: EmployeeDashboardProps) {
+export function EmployeeDashboard({ userName, userDepartment, userId }: EmployeeDashboardProps) {
   // Mock data - in real app, this would come from Supabase
   const stats = [
     { title: "Tasks Completed", value: "12", change: "+2 this week", icon: CheckCircle2, color: "text-green-600" },
@@ -53,6 +56,16 @@ export function EmployeeDashboard({ userName, userDepartment }: EmployeeDashboar
           {userDepartment ? `Here's what's happening in ${userDepartment}` : "Here's your dashboard overview"}
         </p>
       </div>
+
+      {/* Time Tracking Card */}
+      {userId && (
+        <TimeTrackingCard userId={userId} userName={userName} />
+      )}
+
+      {/* Timesheet Card */}
+      {userId && (
+        <TimesheetCard userId={userId} userName={userName} />
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

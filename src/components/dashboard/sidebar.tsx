@@ -18,7 +18,6 @@ import {
   BarChart3
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
 
 interface SidebarProps {
   userRole: "employee" | "manager" | "admin"
@@ -45,7 +44,6 @@ const managerNavItems = [
 export function Sidebar({ userRole, userName, userDepartment }: SidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
-  const router = useRouter()
 
   const navItems = userRole === "employee" ? employeeNavItems : managerNavItems
 
@@ -58,8 +56,17 @@ export function Sidebar({ userRole, userName, userDepartment }: SidebarProps) {
         console.error('Sign out error:', error)
       }
       
-      // Force a hard redirect to clear any cached state
-      window.location.href = "/auth"
+      // Clear any local storage
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+      }
+      
+      // Wait a moment for the session to clear on the server side
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Force a hard redirect to clear any cached state with sign out parameter
+      window.location.href = "/auth?signout=true"
     } catch (err) {
       console.error('Sign out error:', err)
       // Even if there's an error, redirect to auth page

@@ -10,7 +10,7 @@ export default async function AuthCallbackPage({
 
   const code = searchParams.code
 
-  if (code) {
+  if (code && typeof code === 'string') {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {

@@ -40,6 +40,7 @@ export default async function DashboardPage() {
             <EmployeeDashboard 
               userName={profile.full_name || "User"}
               userDepartment={profile.department || undefined}
+              userId={user.id}
             />
           ) : (
             <ManagerDashboard 

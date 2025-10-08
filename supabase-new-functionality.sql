@@ -1,33 +1,12 @@
--- Create custom types
-CREATE TYPE user_role AS ENUM ('employee', 'manager', 'admin');
+-- New functionality schema for manager dashboard buttons
+-- Only includes new tables and features, assumes existing tables are already set up
+
+-- Create custom types for new functionality
 CREATE TYPE project_priority AS ENUM ('low', 'medium', 'high');
 CREATE TYPE project_status AS ENUM ('planning', 'in_progress', 'completed', 'on_hold');
 
--- Create departments table
-CREATE TABLE departments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
-  description TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create profiles table
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email TEXT NOT NULL UNIQUE,
-  full_name TEXT,
-  role user_role DEFAULT 'employee',
-  department TEXT,
-  position TEXT,
-  avatar_url TEXT,
-  manager_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Create projects table
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT NOT NULL,
@@ -41,7 +20,7 @@ CREATE TABLE projects (
 );
 
 -- Create team_invitations table
-CREATE TABLE team_invitations (
+CREATE TABLE IF NOT EXISTS team_invitations (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT NOT NULL,
   full_name TEXT NOT NULL,
@@ -55,7 +34,7 @@ CREATE TABLE team_invitations (
 );
 
 -- Create meetings table
-CREATE TABLE meetings (
+CREATE TABLE IF NOT EXISTS meetings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
@@ -69,7 +48,7 @@ CREATE TABLE meetings (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create updated_at trigger function
+-- Create updated_at trigger function (if it doesn't exist)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -79,16 +58,6 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers for updated_at
-CREATE TRIGGER update_departments_updated_at
-  BEFORE UPDATE ON departments
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_profiles_updated_at
-  BEFORE UPDATE ON profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW
@@ -105,48 +74,9 @@ CREATE TRIGGER update_meetings_updated_at
   EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security
-ALTER TABLE departments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE team_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
-
--- Create RLS policies for profiles
-CREATE POLICY "Users can view their own profile" ON profiles
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile" ON profiles
-  FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Managers can view their team members" ON profiles
-  FOR SELECT USING (
-    auth.uid() = manager_id OR 
-    auth.uid() = id OR
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role IN ('manager', 'admin')
-    )
-  );
-
-CREATE POLICY "Admins can view all profiles" ON profiles
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
-
--- Create RLS policies for departments
-CREATE POLICY "Everyone can view departments" ON departments
-  FOR SELECT USING (true);
-
-CREATE POLICY "Only admins can manage departments" ON departments
-  FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM profiles 
-      WHERE id = auth.uid() AND role = 'admin'
-    )
-  );
 
 -- Create RLS policies for projects
 CREATE POLICY "Managers and admins can view all projects" ON projects
@@ -215,39 +145,11 @@ CREATE POLICY "Managers and admins can create meetings" ON meetings
     )
   );
 
--- Create function to handle new user signup
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO profiles (id, email, full_name, role)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name', 'employee');
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create trigger for new user signup
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
-
--- Insert sample departments
-INSERT INTO departments (name, description) VALUES
-  ('Engineering', 'Software development and technical operations'),
-  ('Marketing', 'Brand management and customer acquisition'),
-  ('Sales', 'Customer relations and revenue generation'),
-  ('HR', 'Human resources and employee relations'),
-  ('Finance', 'Financial planning and accounting'),
-  ('Operations', 'Business operations and process management');
-
 -- Create indexes for better performance
-CREATE INDEX idx_profiles_role ON profiles(role);
-CREATE INDEX idx_profiles_department ON profiles(department);
-CREATE INDEX idx_profiles_manager_id ON profiles(manager_id);
-CREATE INDEX idx_departments_name ON departments(name);
-CREATE INDEX idx_projects_created_by ON projects(created_by);
-CREATE INDEX idx_projects_status ON projects(status);
-CREATE INDEX idx_projects_priority ON projects(priority);
-CREATE INDEX idx_team_invitations_invited_by ON team_invitations(invited_by);
-CREATE INDEX idx_team_invitations_status ON team_invitations(status);
-CREATE INDEX idx_meetings_created_by ON meetings(created_by);
-CREATE INDEX idx_meetings_meeting_date ON meetings(meeting_date);
+CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_priority ON projects(priority);
+CREATE INDEX IF NOT EXISTS idx_team_invitations_invited_by ON team_invitations(invited_by);
+CREATE INDEX IF NOT EXISTS idx_team_invitations_status ON team_invitations(status);
+CREATE INDEX IF NOT EXISTS idx_meetings_created_by ON meetings(created_by);
+CREATE INDEX IF NOT EXISTS idx_meetings_meeting_date ON meetings(meeting_date);

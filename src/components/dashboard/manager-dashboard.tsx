@@ -1,7 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { CreateProjectModal } from "./create-project-modal"
+import { AddTeamMemberModal } from "./add-team-member-modal"
+import { ScheduleMeetingModal } from "./schedule-meeting-modal"
+import { TeamSettingsModal } from "./team-settings-modal"
+import { ManageTeamModal } from "./manage-team-modal"
+import { ViewActivitiesModal } from "./view-activities-modal"
 import { 
   Users, 
   TrendingUp, 
@@ -9,9 +15,6 @@ import {
   CheckCircle2,
   AlertCircle,
   BarChart3,
-  UserPlus,
-  Settings,
-  Calendar,
   FileText
 } from "lucide-react"
 
@@ -21,6 +24,8 @@ interface ManagerDashboardProps {
 }
 
 export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardProps) {
+  const [, setRefreshKey] = useState(0)
+  
   // Mock data - in real app, this would come from Supabase
   const teamStats = [
     { title: "Team Members", value: "12", change: "+2 this month", icon: Users, color: "text-blue-600" },
@@ -61,22 +66,10 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Button className="h-20 flex flex-col items-center justify-center space-y-2">
-          <UserPlus className="h-6 w-6" />
-          <span>Add Team Member</span>
-        </Button>
-        <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2">
-          <FileText className="h-6 w-6" />
-          <span>Create Project</span>
-        </Button>
-        <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2">
-          <Calendar className="h-6 w-6" />
-          <span>Schedule Meeting</span>
-        </Button>
-        <Button variant="outline" className="h-20 flex flex-col items-center justify-center space-y-2">
-          <Settings className="h-6 w-6" />
-          <span>Team Settings</span>
-        </Button>
+        <AddTeamMemberModal onMemberAdded={() => setRefreshKey(prev => prev + 1)} />
+        <CreateProjectModal onProjectCreated={() => setRefreshKey(prev => prev + 1)} />
+        <ScheduleMeetingModal onMeetingScheduled={() => setRefreshKey(prev => prev + 1)} />
+        <TeamSettingsModal onSettingsUpdated={() => setRefreshKey(prev => prev + 1)} />
       </div>
 
       {/* Stats Grid */}
@@ -137,9 +130,7 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
                 </div>
               ))}
             </div>
-            <Button className="w-full mt-4" variant="outline">
-              Manage Team
-            </Button>
+            <ManageTeamModal onTeamUpdated={() => setRefreshKey(prev => prev + 1)} />
           </CardContent>
         </Card>
 
@@ -166,9 +157,7 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
                 </div>
               ))}
             </div>
-            <Button className="w-full mt-4" variant="outline">
-              View All Activities
-            </Button>
+            <ViewActivitiesModal onActivitiesUpdated={() => setRefreshKey(prev => prev + 1)} />
           </CardContent>
         </Card>
       </div>
