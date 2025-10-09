@@ -1,6 +1,9 @@
 import { supabase } from './supabase'
 import { TimesheetEntry, TimesheetSubmission } from './database.types'
 
+// Re-export types for use in components
+export type { TimesheetEntry, TimesheetSubmission }
+
 export interface Project {
   id: string
   name: string

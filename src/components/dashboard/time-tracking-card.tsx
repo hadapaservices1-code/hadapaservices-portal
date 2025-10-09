@@ -17,7 +17,7 @@ interface TimeTrackingCardProps {
   userName: string
 }
 
-export function TimeTrackingCard({ userId, _userName }: TimeTrackingCardProps) {
+export function TimeTrackingCard({ userId, userName: _userName }: TimeTrackingCardProps) {
   const [timeStatus, setTimeStatus] = useState<{
     is_clocked_in: boolean
     current_time_in: string | null

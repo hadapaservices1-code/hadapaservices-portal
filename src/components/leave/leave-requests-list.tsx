@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Calendar, Clock, MessageSquare, MoreVertical, Eye, X } from 'lucide-react'
+import { Calendar, Clock, MessageSquare, MoreVertical, Eye, X, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -110,8 +110,22 @@ export function LeaveRequestsList({ employeeId, onRefresh }: LeaveRequestsListPr
     <>
       <Card>
         <CardHeader>
-          <CardTitle>My Leave Requests</CardTitle>
-          <CardDescription>Your submitted leave requests</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>My Leave Requests</CardTitle>
+              <CardDescription>Your submitted leave requests</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRequests}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {requests.length === 0 ? (

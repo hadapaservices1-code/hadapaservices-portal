@@ -22,7 +22,7 @@ interface TimesheetCardProps {
   userName: string
 }
 
-export function TimesheetCard({ userId, _userName }: TimesheetCardProps) {
+export function TimesheetCard({ userId, userName: _userName }: TimesheetCardProps) {
   const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>([])
   const [totalHours, setTotalHours] = useState<number>(0)
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
@@ -224,7 +224,7 @@ export function TimesheetCard({ userId, _userName }: TimesheetCardProps) {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <h5 className="font-medium text-gray-900">
-                        {(entry as Record<string, unknown>).projects?.name || 'Unknown Project'}
+                        {((entry as Record<string, unknown>).projects as { name?: string })?.name || 'Unknown Project'}
                       </h5>
                       <Badge className={getStatusColor(entry.status)}>
                         {entry.status}

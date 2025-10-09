@@ -4,11 +4,12 @@ import { redirect } from "next/navigation"
 export default async function AuthCallbackPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const supabase = await createClient()
 
-  const code = searchParams.code
+  const resolvedSearchParams = await searchParams
+  const code = resolvedSearchParams.code
 
   if (code && typeof code === 'string') {
     const { error } = await supabase.auth.exchangeCodeForSession(code)

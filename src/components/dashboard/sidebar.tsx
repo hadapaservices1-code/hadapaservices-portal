@@ -16,7 +16,9 @@ import {
   X,
   Building2,
   BarChart3,
-  Plane
+  Plane,
+  Activity,
+  Clock
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -37,6 +39,8 @@ const employeeNavItems = [
 const managerNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Team", href: "/dashboard/team", icon: Users },
+  { name: "Team Activity", href: "/dashboard/team-activity", icon: Activity },
+  { name: "Time Tracking", href: "/dashboard/time-tracking", icon: Clock },
   { name: "Leave", href: "/dashboard/leave", icon: Plane },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Tasks", href: "/dashboard/tasks", icon: FileText },

@@ -9,6 +9,8 @@ import { TeamSettingsModal } from "./team-settings-modal"
 import { ManageTeamModal } from "./manage-team-modal"
 import { ViewActivitiesModal } from "./view-activities-modal"
 import { ManagerLeaveSummary } from "./manager-leave-summary"
+import { TeamActivitySummary } from "./team-activity-summary"
+import { ManagerTimeTrackingSummary } from "./manager-time-tracking-summary"
 import { 
   Users, 
   TrendingUp, 
@@ -190,6 +192,28 @@ export function ManagerDashboard({ userName, userDepartment, userId }: ManagerDa
       {/* Leave Management Summary */}
       {userId && (
         <ManagerLeaveSummary managerId={userId} />
+      )}
+
+      {/* Team Activity Summary */}
+      {userId && (
+        <TeamActivitySummary
+          managerId={userId}
+          onViewDetails={() => {
+            // This will be handled by navigation to the team activity page
+            window.location.href = '/dashboard/team-activity'
+          }}
+        />
+      )}
+
+      {/* Time Tracking Summary */}
+      {userId && (
+        <ManagerTimeTrackingSummary
+          managerId={userId}
+          onViewDetails={() => {
+            // This will be handled by navigation to the time tracking page
+            window.location.href = '/dashboard/time-tracking'
+          }}
+        />
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

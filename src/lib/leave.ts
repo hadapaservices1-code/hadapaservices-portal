@@ -8,7 +8,21 @@ export interface LeaveTypeWithStats extends LeaveType {
 }
 
 // Leave Request with additional info
-export interface LeaveRequestWithDetails extends LeaveRequest {
+export interface LeaveRequestWithDetails {
+  id: string
+  employee_id: string
+  manager_id: string | null
+  leave_type_id: string
+  start_date: string
+  end_date: string
+  total_days: number
+  reason: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  manager_comment: string | null
+  applied_at: string
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
   leave_type_name: string
   employee_name: string
   manager_name?: string
@@ -49,7 +63,7 @@ export async function getLeaveTypes(): Promise<LeaveType[]> {
 export async function getEmployeeLeaveRequests(employeeId: string): Promise<LeaveRequestWithDetails[]> {
   try {
     // Check if leave_requests table exists
-    const { error: testError } = await supabase
+    const { error: testError } = await supabaseAdmin
       .from('leave_requests')
       .select('id')
       .limit(1)
@@ -60,8 +74,8 @@ export async function getEmployeeLeaveRequests(employeeId: string): Promise<Leav
       return []
     }
 
-    // Use direct query for better reliability
-    const { data: fallbackData, error: fallbackError } = await supabase
+    // Use admin client for better reliability and real-time data access
+    const { data: fallbackData, error: fallbackError } = await supabaseAdmin
       .from('leave_requests')
       .select(`
         *,

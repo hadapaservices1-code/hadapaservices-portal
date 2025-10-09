@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { supabase, supabaseAdmin } from './supabase'
 
 export interface TeamMember {
   id: string
@@ -23,6 +23,77 @@ export interface TeamStats {
   completed_tasks: number
   total_tasks: number
   productivity_rate: number
+}
+
+export interface EmployeeActivity {
+  pendingLeaves: number
+  approvedLeaves: number
+  totalLeaves: number
+  totalHoursThisWeek: number
+  activeTasks: number
+  completedTasks: number
+  totalTasks: number
+  lastActivity: string
+}
+
+export interface TeamMemberWithActivity extends TeamMember {
+  activity: EmployeeActivity
+  recentLeaves: Array<{
+    id: string
+    status: string
+    start_date: string
+    end_date: string
+    applied_at: string
+    leave_types?: { name: string }
+  }>
+  recentTimeEntries: Array<{
+    id: string
+    date: string
+    total_hours: number
+    status: string
+    time_in: string | null
+    time_out: string | null
+    created_at: string
+  }>
+  recentTasks: Array<{
+    id: string
+    title: string
+    description?: string
+    status: string
+    priority: string
+    due_date: string
+    created_at: string
+  }>
+}
+
+export interface EmployeeActivityDetails {
+  profile: TeamMember
+  leaveRequests: Array<{
+    id: string
+    status: string
+    start_date: string
+    end_date: string
+    applied_at: string
+    leave_types?: { name: string }
+  }>
+  timeEntries: Array<{
+    id: string
+    date: string
+    total_hours: number
+    status: string
+    time_in: string | null
+    time_out: string | null
+    created_at: string
+  }>
+  tasks: Array<{
+    id: string
+    title: string
+    description?: string
+    status: string
+    priority: string
+    due_date: string
+    created_at: string
+  }>
 }
 
 // Get team members for a manager
@@ -298,5 +369,205 @@ export async function removeTeamMember(employeeId: string): Promise<{ success: b
   } catch (error) {
     console.error('Error in removeTeamMember:', error)
     return { success: false, message: 'An unexpected error occurred' }
+  }
+}
+
+// Get team members with activity data for manager dashboard
+export async function getTeamMembersWithActivity(managerId: string): Promise<TeamMemberWithActivity[]> {
+  try {
+    // Get team members
+    const { data: teamData, error: teamError } = await supabaseAdmin
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        email,
+        role,
+        department,
+        position,
+        avatar_url,
+        manager_id,
+        created_at,
+        updated_at
+      `)
+      .eq('manager_id', managerId)
+      .eq('role', 'employee')
+      .order('full_name')
+
+    if (teamError) {
+      console.error('Error fetching team members:', teamError)
+      return []
+    }
+
+    if (!teamData || teamData.length === 0) {
+      return []
+    }
+
+    // Get leave requests for all team members
+    const { data: leaveData, error: leaveError } = await supabaseAdmin
+      .from('leave_requests')
+      .select(`
+        id,
+        employee_id,
+        status,
+        start_date,
+        end_date,
+        applied_at,
+        reviewed_at,
+        leave_types(name)
+      `)
+      .in('employee_id', teamData.map(member => member.id))
+      .order('applied_at', { ascending: false })
+
+    if (leaveError) {
+      console.error('Error fetching leave data:', leaveError)
+    }
+
+    // Get time tracking data for all team members (if available)
+    const { data: timeData, error: timeError } = await supabaseAdmin
+      .from('time_tracking') // Use actual time_tracking table
+      .select(`
+        id,
+        user_id,
+        date,
+        total_hours,
+        status,
+        time_in,
+        time_out,
+        created_at
+      `)
+      .in('user_id', teamData.map(member => member.id))
+      .gte('date', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()) // Last 30 days
+      .order('date', { ascending: false })
+
+    if (timeError) {
+      console.error('Error fetching time data:', timeError)
+    }
+
+    // Get task data for all team members (if available)
+    const { data: taskData, error: taskError } = await supabaseAdmin
+      .from('tasks')
+      .select(`
+        id,
+        assigned_to,
+        status,
+        priority,
+        due_date,
+        created_at,
+        updated_at
+      `)
+      .in('assigned_to', teamData.map(member => member.id))
+      .order('created_at', { ascending: false })
+
+    if (taskError) {
+      console.error('Error fetching task data:', taskError)
+    }
+
+    // Combine data for each team member
+    return teamData.map(member => {
+      const memberLeaves = (leaveData || []).filter(leave => leave.employee_id === member.id)
+      const memberTimeEntries = (timeData || []).filter(time => time.user_id === member.id)
+      const memberTasks = (taskData || []).filter(task => task.assigned_to === member.id)
+
+      // Calculate activity metrics
+      const pendingLeaves = memberLeaves.filter(leave => leave.status === 'pending').length
+      const approvedLeaves = memberLeaves.filter(leave => leave.status === 'approved').length
+      const totalHoursThisWeek = memberTimeEntries
+        .filter(entry => {
+          const entryDate = new Date(entry.date)
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+          return entryDate >= weekAgo
+        })
+        .reduce((total, entry) => total + (entry.total_hours || 0), 0)
+      
+      const activeTasks = memberTasks.filter(task => 
+        task.status === 'in_progress' || task.status === 'pending'
+      ).length
+      
+      const completedTasks = memberTasks.filter(task => task.status === 'completed').length
+
+      return {
+        ...member,
+        activity: {
+          pendingLeaves,
+          approvedLeaves,
+          totalLeaves: memberLeaves.length,
+          totalHoursThisWeek,
+          activeTasks,
+          completedTasks,
+          totalTasks: memberTasks.length,
+          lastActivity: memberLeaves[0]?.applied_at || memberTimeEntries[0]?.created_at || member.created_at
+        },
+        recentLeaves: memberLeaves.slice(0, 3),
+        recentTimeEntries: memberTimeEntries.slice(0, 5),
+        recentTasks: memberTasks.slice(0, 3)
+      }
+    })
+  } catch (error) {
+    console.error('Error in getTeamMembersWithActivity:', error)
+    return []
+  }
+}
+
+// Get detailed employee activity data
+export async function getEmployeeActivityDetails(employeeId: string): Promise<EmployeeActivityDetails> {
+  try {
+    // Get employee profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', employeeId)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching employee profile:', profileError)
+      throw new Error('Employee not found')
+    }
+
+    // Get all leave requests
+    const { data: leaveData, error: leaveError } = await supabaseAdmin
+      .from('leave_requests')
+      .select(`
+        *,
+        leave_types(name)
+      `)
+      .eq('employee_id', employeeId)
+      .order('applied_at', { ascending: false })
+
+    if (leaveError) {
+      console.error('Error fetching leave data:', leaveError)
+    }
+
+    // Get time tracking data
+    const { data: timeData, error: timeError } = await supabaseAdmin
+      .from('time_tracking') // Use actual time_tracking table
+      .select('*')
+      .eq('user_id', employeeId)
+      .order('date', { ascending: false })
+
+    if (timeError) {
+      console.error('Error fetching time data:', timeError)
+    }
+
+    // Get task data
+    const { data: taskData, error: taskError } = await supabaseAdmin
+      .from('tasks')
+      .select('*')
+      .eq('assigned_to', employeeId)
+      .order('created_at', { ascending: false })
+
+    if (taskError) {
+      console.error('Error fetching task data:', taskError)
+    }
+
+    return {
+      profile,
+      leaveRequests: leaveData || [],
+      timeEntries: timeData || [],
+      tasks: taskData || []
+    }
+  } catch (error) {
+    console.error('Error in getEmployeeActivityDetails:', error)
+    throw error
   }
 }

@@ -142,7 +142,7 @@ export function LeaveSummaryCard({ employeeId, userRole }: LeaveSummaryCardProps
               </div>
             ) : (
               recentRequests.map((request) => (
-                <div key={(request as LeaveRequestWithDetails & { id: string }).id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div key={request.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium">{request.leave_type_name}</span>

@@ -35,7 +35,7 @@ export function TaskDetailModal({ task, onTaskUpdated, onClose }: TaskDetailModa
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       setIsUpdating(true)
-      const result = await updateTaskStatus(task.id, newStatus, task.assigned_to)
+      const result = await updateTaskStatus(task.id, newStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold', task.assigned_to)
       if (result.success) {
         onTaskUpdated()
       } else {
