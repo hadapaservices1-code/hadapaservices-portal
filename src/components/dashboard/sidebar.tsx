@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   Building2,
-  BarChart3
+  BarChart3,
+  Plane
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -28,6 +29,7 @@ interface SidebarProps {
 const employeeNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Tasks", href: "/dashboard/tasks", icon: FileText },
+  { name: "Leave", href: "/dashboard/leave", icon: Plane },
   { name: "Schedule", href: "/dashboard/schedule", icon: Calendar },
   { name: "Profile", href: "/dashboard/profile", icon: Settings },
 ]
@@ -35,6 +37,7 @@ const employeeNavItems = [
 const managerNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Team", href: "/dashboard/team", icon: Users },
+  { name: "Leave", href: "/dashboard/leave", icon: Plane },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Tasks", href: "/dashboard/tasks", icon: FileText },
   { name: "Schedule", href: "/dashboard/schedule", icon: Calendar },

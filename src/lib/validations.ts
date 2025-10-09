@@ -95,6 +95,29 @@ export const timesheetApprovalSchema = z.object({
   rejection_reason: z.string().optional(),
 })
 
+export const createTaskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
+  description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"], {
+    message: "Please select a priority",
+  }),
+  assigned_to: z.string().min(1, "Please select an assignee"),
+  project_id: z.string().optional(),
+  due_date: z.string().optional(),
+  estimated_hours: z.number().min(0.25, "Minimum 15 minutes").max(100, "Maximum 100 hours").optional(),
+  tags: z.string().optional(),
+})
+
+export const updateTaskSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200, "Title must be less than 200 characters").optional(),
+  description: z.string().max(1000, "Description must be less than 1000 characters").optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  due_date: z.string().optional(),
+  estimated_hours: z.number().min(0.25, "Minimum 15 minutes").max(100, "Maximum 100 hours").optional(),
+  actual_hours: z.number().min(0, "Cannot be negative").max(100, "Maximum 100 hours").optional(),
+  tags: z.string().optional(),
+})
+
 export type LoginFormData = z.infer<typeof loginSchema>
 export type SignupFormData = z.infer<typeof signupSchema>
 export type ProjectFormData = z.infer<typeof projectSchema>
@@ -106,3 +129,36 @@ export type ClockOutFormData = z.infer<typeof clockOutSchema>
 export type TimesheetEntryFormData = z.infer<typeof timesheetEntrySchema>
 export type TimesheetSubmissionFormData = z.infer<typeof timesheetSubmissionSchema>
 export type TimesheetApprovalFormData = z.infer<typeof timesheetApprovalSchema>
+export type CreateTaskFormData = z.infer<typeof createTaskSchema>
+export type UpdateTaskFormData = z.infer<typeof updateTaskSchema>
+
+// Leave Management Schemas
+export const leaveRequestSchema = z.object({
+  leaveTypeId: z.string().min(1, "Please select a leave type"),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  reason: z.string().min(10, "Reason must be at least 10 characters"),
+}).refine((data) => {
+  const startDate = new Date(data.startDate)
+  const endDate = new Date(data.endDate)
+  return endDate >= startDate
+}, {
+  message: "End date must be after or equal to start date",
+  path: ["endDate"],
+})
+
+export const leaveApprovalSchema = z.object({
+  status: z.enum(["approved", "rejected"], {
+    message: "Please select approval status",
+  }),
+  comment: z.string().optional(),
+})
+
+export const leaveCommentSchema = z.object({
+  comment: z.string().min(1, "Comment is required"),
+  isInternal: z.boolean().default(false),
+})
+
+export type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>
+export type LeaveApprovalFormData = z.infer<typeof leaveApprovalSchema>
+export type LeaveCommentFormData = z.infer<typeof leaveCommentSchema>

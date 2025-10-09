@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreateProjectModal } from "./create-project-modal"
 import { AddTeamMemberModal } from "./add-team-member-modal"
@@ -8,6 +8,7 @@ import { ScheduleMeetingModal } from "./schedule-meeting-modal"
 import { TeamSettingsModal } from "./team-settings-modal"
 import { ManageTeamModal } from "./manage-team-modal"
 import { ViewActivitiesModal } from "./view-activities-modal"
+import { ManagerLeaveSummary } from "./manager-leave-summary"
 import { 
   Users, 
   TrendingUp, 
@@ -17,41 +18,134 @@ import {
   BarChart3,
   FileText
 } from "lucide-react"
+import { 
+  getTeamMembers, 
+  getTeamStats, 
+  getRecentTeamActivities, 
+  getUpcomingDeadlines,
+  type TeamMember,
+  type TeamStats 
+} from "@/lib/team"
 
 interface ManagerDashboardProps {
   userName: string
   userDepartment?: string
+  userId: string
 }
 
-export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardProps) {
+export function ManagerDashboard({ userName, userDepartment, userId }: ManagerDashboardProps) {
   const [, setRefreshKey] = useState(0)
-  
-  // Mock data - in real app, this would come from Supabase
-  const teamStats = [
-    { title: "Team Members", value: "12", change: "+2 this month", icon: Users, color: "text-blue-600" },
-    { title: "Tasks Completed", value: "48", change: "+15% vs last month", icon: CheckCircle2, color: "text-green-600" },
-    { title: "Active Projects", value: "6", change: "3 in progress", icon: FileText, color: "text-purple-600" },
-    { title: "Team Productivity", value: "92%", change: "+5% this week", icon: TrendingUp, color: "text-orange-600" },
-  ]
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
+  const [teamStats, setTeamStats] = useState<TeamStats | null>(null)
+  const [recentActivities, setRecentActivities] = useState<{
+    id: string
+    user: string
+    action: string
+    task: string
+    time: string
+  }[]>([])
+  const [upcomingDeadlines, setUpcomingDeadlines] = useState<{
+    project: string
+    deadline: string
+    status: string
+    priority: string
+  }[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const teamMembers = [
-    { id: 1, name: "Sarah Johnson", role: "Senior Developer", status: "Online", tasks: 8, completed: 6 },
-    { id: 2, name: "Mike Chen", role: "UI/UX Designer", status: "Away", tasks: 5, completed: 4 },
-    { id: 3, name: "Emily Davis", role: "Project Manager", status: "Online", tasks: 12, completed: 10 },
-    { id: 4, name: "Alex Rodriguez", role: "Backend Developer", status: "Offline", tasks: 6, completed: 3 },
-  ]
+  // Fetch real data from database
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!userId) return
+      
+      try {
+        setIsLoading(true)
+        
+        // Fetch data with individual error handling
+        const [membersResult, statsResult, activitiesResult, deadlinesResult] = await Promise.allSettled([
+          getTeamMembers(userId),
+          getTeamStats(userId),
+          getRecentTeamActivities(userId),
+          getUpcomingDeadlines(userId)
+        ])
+        
+        // Handle each result individually
+        if (membersResult.status === 'fulfilled') {
+          setTeamMembers(membersResult.value)
+        } else {
+          console.error('Error fetching team members:', membersResult.reason)
+          setTeamMembers([])
+        }
+        
+        if (statsResult.status === 'fulfilled') {
+          setTeamStats(statsResult.value)
+        } else {
+          console.error('Error fetching team stats:', statsResult.reason)
+          setTeamStats(null)
+        }
+        
+        if (activitiesResult.status === 'fulfilled') {
+          setRecentActivities(activitiesResult.value)
+        } else {
+          console.error('Error fetching recent activities:', activitiesResult.reason)
+          setRecentActivities([])
+        }
+        
+        if (deadlinesResult.status === 'fulfilled') {
+          setUpcomingDeadlines(deadlinesResult.value)
+        } else {
+          console.error('Error fetching upcoming deadlines:', deadlinesResult.reason)
+          setUpcomingDeadlines([])
+        }
+      } catch (error) {
+        console.error('Error in fetchData:', error)
+        // Set empty states to prevent crashes
+        setTeamMembers([])
+        setTeamStats(null)
+        setRecentActivities([])
+        setUpcomingDeadlines([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const recentActivities = [
-    { id: 1, user: "Sarah Johnson", action: "completed task", task: "User authentication module", time: "2 hours ago" },
-    { id: 2, user: "Mike Chen", action: "uploaded file", task: "Design mockups v2", time: "4 hours ago" },
-    { id: 3, user: "Emily Davis", action: "created project", task: "Q1 Marketing Campaign", time: "6 hours ago" },
-    { id: 4, user: "Alex Rodriguez", action: "commented on", task: "Database optimization", time: "8 hours ago" },
-  ]
+    fetchData()
+  }, [userId])
 
-  const upcomingDeadlines = [
-    { project: "Mobile App Launch", deadline: "Jan 20, 2024", status: "On Track", priority: "High" },
-    { project: "Q1 Report", deadline: "Jan 25, 2024", status: "At Risk", priority: "Medium" },
-    { project: "Team Training", deadline: "Jan 30, 2024", status: "On Track", priority: "Low" },
+  // Format team stats for display
+  const displayStats = teamStats ? [
+    { 
+      title: "Team Members", 
+      value: teamStats.total_members.toString(), 
+      change: `+${teamStats.active_members} active`, 
+      icon: Users, 
+      color: "text-blue-600" 
+    },
+    { 
+      title: "Tasks Completed", 
+      value: teamStats.completed_tasks.toString(), 
+      change: `${teamStats.productivity_rate}% completion rate`, 
+      icon: CheckCircle2, 
+      color: "text-green-600" 
+    },
+    { 
+      title: "Total Tasks", 
+      value: teamStats.total_tasks.toString(), 
+      change: "All time", 
+      icon: FileText, 
+      color: "text-purple-600" 
+    },
+    { 
+      title: "Team Productivity", 
+      value: `${teamStats.productivity_rate}%`, 
+      change: "Completion rate", 
+      icon: TrendingUp, 
+      color: "text-orange-600" 
+    },
+  ] : [
+    { title: "Team Members", value: "0", change: "Loading...", icon: Users, color: "text-blue-600" },
+    { title: "Tasks Completed", value: "0", change: "Loading...", icon: CheckCircle2, color: "text-green-600" },
+    { title: "Active Projects", value: "0", change: "Loading...", icon: FileText, color: "text-purple-600" },
+    { title: "Team Productivity", value: "0%", change: "Loading...", icon: TrendingUp, color: "text-orange-600" },
   ]
 
   return (
@@ -74,7 +168,7 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {teamStats.map((stat, index) => {
+        {displayStats.map((stat, index) => {
           const Icon = stat.icon
           return (
             <Card key={index} className="hover:shadow-md transition-shadow">
@@ -93,6 +187,11 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
         })}
       </div>
 
+      {/* Leave Management Summary */}
+      {userId && (
+        <ManagerLeaveSummary managerId={userId} />
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team Members */}
         <Card>
@@ -104,32 +203,64 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
             <CardDescription>Your team&apos;s current status and workload</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold text-sm">
-                        {member.name.split(' ').map(n => n[0]).join('')}
-                      </span>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                      <div>
+                        <div className="h-4 bg-gray-300 rounded w-24 mb-2"></div>
+                        <div className="h-3 bg-gray-300 rounded w-16"></div>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">{member.name}</h4>
-                      <p className="text-sm text-gray-500">{member.role}</p>
+                    <div className="text-right">
+                      <div className="w-3 h-3 bg-gray-300 rounded-full mb-1"></div>
+                      <div className="h-3 bg-gray-300 rounded w-12"></div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className={`w-3 h-3 rounded-full ${
-                      member.status === 'Online' ? 'bg-green-400' : 
-                      member.status === 'Away' ? 'bg-yellow-400' : 'bg-gray-400'
-                    }`} />
-                    <p className="text-sm text-gray-500 mt-1">
-                      {member.completed}/{member.tasks} tasks
-                    </p>
+                ))}
+              </div>
+            ) : teamMembers.length > 0 ? (
+              <div className="space-y-4">
+                {teamMembers.map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span className="text-white font-semibold text-sm">
+                          {member.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">{member.full_name || 'Unknown User'}</h4>
+                        <p className="text-sm text-gray-500">{member.position || member.role}</p>
+                        <p className="text-xs text-gray-400">{member.department || 'No department'}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${
+                          member.status === 'online' ? 'bg-green-400' : 
+                          member.status === 'away' ? 'bg-yellow-400' : 'bg-gray-400'
+                        }`} />
+                        <span className="text-xs text-gray-500">
+                          {member.manager_id ? 'Assigned' : 'Available'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {member.completed_tasks || 0}/{member.task_count || 0} tasks
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No employees found</p>
+                <p className="text-sm text-gray-400">Employees will appear here when they register</p>
+              </div>
+            )}
             <ManageTeamModal onTeamUpdated={() => setRefreshKey(prev => prev + 1)} />
           </CardContent>
         </Card>
@@ -144,6 +275,19 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
             <CardDescription>Latest updates from your team</CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-300 rounded w-1/4"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : recentActivities.length > 0 ? (
             <div className="space-y-4">
               {recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -157,6 +301,13 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
                 </div>
               ))}
             </div>
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No recent activities</p>
+                <p className="text-sm text-gray-400">Team activities will appear here</p>
+              </div>
+            )}
             <ViewActivitiesModal onActivitiesUpdated={() => setRefreshKey(prev => prev + 1)} />
           </CardContent>
         </Card>
@@ -172,6 +323,22 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
           <CardDescription>Projects and tasks that need attention</CardDescription>
         </CardHeader>
         <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-4 border rounded-lg animate-pulse">
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
+                    <div className="h-3 bg-gray-300 rounded w-1/3"></div>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-6 bg-gray-300 rounded-full w-16"></div>
+                    <div className="h-6 bg-gray-300 rounded-full w-12"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : upcomingDeadlines.length > 0 ? (
           <div className="space-y-4">
             {upcomingDeadlines.map((deadline, index) => (
               <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
@@ -190,9 +357,9 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
                     {deadline.status}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    deadline.priority === 'High' 
+                      deadline.priority === 'high' 
                       ? 'bg-red-100 text-red-800'
-                      : deadline.priority === 'Medium'
+                        : deadline.priority === 'medium'
                       ? 'bg-yellow-100 text-yellow-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
@@ -202,6 +369,13 @@ export function ManagerDashboard({ userName, userDepartment }: ManagerDashboardP
               </div>
             ))}
           </div>
+          ) : (
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No upcoming deadlines</p>
+              <p className="text-sm text-gray-400">Project deadlines will appear here</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

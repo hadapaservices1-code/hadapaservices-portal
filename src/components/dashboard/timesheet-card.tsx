@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
 import { Clock, Plus, FileText, CheckCircle2, AlertCircle, Calendar } from "lucide-react"
 import { 
   getCurrentWeekTimesheet, 
@@ -22,7 +22,7 @@ interface TimesheetCardProps {
   userName: string
 }
 
-export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
+export function TimesheetCard({ userId, _userName }: TimesheetCardProps) {
   const [timesheetEntries, setTimesheetEntries] = useState<TimesheetEntry[]>([])
   const [totalHours, setTotalHours] = useState<number>(0)
   const [hasSubmitted, setHasSubmitted] = useState<boolean>(false)
@@ -30,9 +30,10 @@ export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isEntryModalOpen, setIsEntryModalOpen] = useState(false)
   const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string>('')
 
   // Fetch timesheet data
-  const fetchTimesheetData = async () => {
+  const fetchTimesheetData = useCallback(async () => {
     try {
       setIsLoading(true)
       const [entries, hours, submitted, projects] = await Promise.all([
@@ -51,11 +52,29 @@ export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [userId])
 
   useEffect(() => {
     fetchTimesheetData()
-  }, [userId])
+  }, [userId, fetchTimesheetData])
+
+  // Update last updated time on client side only to avoid hydration mismatch
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setLastUpdated(now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }))
+    }
+    
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -197,7 +216,7 @@ export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
           <div className="space-y-4">
             <h4 className="font-medium text-gray-900 flex items-center space-x-2">
               <Calendar className="h-4 w-4" />
-              <span>This Week's Entries</span>
+              <span>This Week&apos;s Entries</span>
             </h4>
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {timesheetEntries.map((entry) => (
@@ -205,7 +224,7 @@ export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <h5 className="font-medium text-gray-900">
-                        {(entry as any).projects?.name || 'Unknown Project'}
+                        {(entry as Record<string, unknown>).projects?.name || 'Unknown Project'}
                       </h5>
                       <Badge className={getStatusColor(entry.status)}>
                         {entry.status}
@@ -252,7 +271,7 @@ export function TimesheetCard({ userId, userName }: TimesheetCardProps) {
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
-              <span>Last updated: {new Date().toLocaleTimeString()}</span>
+              <span>Last updated: {lastUpdated || 'Loading...'}</span>
             </div>
             <Button
               variant="ghost"

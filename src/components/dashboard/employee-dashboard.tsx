@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -13,6 +14,9 @@ import {
 } from "lucide-react"
 import { TimeTrackingCard } from "./time-tracking-card"
 import { TimesheetCard } from "./timesheet-card"
+import { LeaveSummaryCard } from "./leave-summary-card"
+import { getUserTasks, getUserTaskStats, type Task, type TaskStats } from "@/lib/tasks"
+import Link from "next/link"
 
 interface EmployeeDashboardProps {
   userName: string
@@ -21,18 +25,63 @@ interface EmployeeDashboardProps {
 }
 
 export function EmployeeDashboard({ userName, userDepartment, userId }: EmployeeDashboardProps) {
-  // Mock data - in real app, this would come from Supabase
-  const stats = [
-    { title: "Tasks Completed", value: "12", change: "+2 this week", icon: CheckCircle2, color: "text-green-600" },
-    { title: "Hours Worked", value: "40.5", change: "This week", icon: Clock, color: "text-blue-600" },
-    { title: "Pending Tasks", value: "3", change: "Due this week", icon: AlertCircle, color: "text-orange-600" },
-    { title: "Team Members", value: "8", change: "In your department", icon: Users, color: "text-purple-600" },
-  ]
+  const [recentTasks, setRecentTasks] = useState<Task[]>([])
+  const [taskStats, setTaskStats] = useState<TaskStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-  const recentTasks = [
-    { id: 1, title: "Complete project proposal", status: "In Progress", priority: "High", dueDate: "2024-01-15" },
-    { id: 2, title: "Review team feedback", status: "Pending", priority: "Medium", dueDate: "2024-01-16" },
-    { id: 3, title: "Update documentation", status: "Completed", priority: "Low", dueDate: "2024-01-14" },
+  // Fetch tasks and stats
+  useEffect(() => {
+    const fetchTasks = async () => {
+      if (!userId) return
+      
+      try {
+        setIsLoading(true)
+        const [tasksData, statsData] = await Promise.all([
+          getUserTasks(userId),
+          getUserTaskStats(userId)
+        ])
+        setRecentTasks(tasksData.slice(0, 3)) // Show only recent 3 tasks
+        setTaskStats(statsData)
+      } catch (error) {
+        console.error('Error fetching tasks:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTasks()
+  }, [userId])
+
+  // Dynamic stats based on real data
+  const stats = [
+    { 
+      title: "Tasks Completed", 
+      value: taskStats?.completed_tasks?.toString() || "0", 
+      change: "+2 this week", 
+      icon: CheckCircle2, 
+      color: "text-green-600" 
+    },
+    { 
+      title: "Hours Worked", 
+      value: "40.5", 
+      change: "This week", 
+      icon: Clock, 
+      color: "text-blue-600" 
+    },
+    { 
+      title: "Pending Tasks", 
+      value: taskStats?.pending_tasks?.toString() || "0", 
+      change: "Due this week", 
+      icon: AlertCircle, 
+      color: "text-orange-600" 
+    },
+    { 
+      title: "Team Members", 
+      value: "8", 
+      change: "In your department", 
+      icon: Users, 
+      color: "text-purple-600" 
+    },
   ]
 
   const upcomingEvents = [
@@ -65,6 +114,11 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
       {/* Timesheet Card */}
       {userId && (
         <TimesheetCard userId={userId} userName={userName} />
+      )}
+
+      {/* Leave Summary Card */}
+      {userId && (
+        <LeaveSummaryCard employeeId={userId} userRole="employee" />
       )}
 
       {/* Stats Grid */}
@@ -100,40 +154,59 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{task.title}</h4>
-                    <div className="flex items-center space-x-4 mt-1">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        task.status === 'Completed' 
-                          ? 'bg-green-100 text-green-800'
-                          : task.status === 'In Progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {task.status}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        task.priority === 'High' 
-                          ? 'bg-red-100 text-red-800'
-                          : task.priority === 'Medium'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {task.priority}
-                      </span>
+              {isLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500">Loading tasks...</p>
+                </div>
+              ) : recentTasks.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-500">No tasks assigned yet</p>
+                </div>
+              ) : (
+                recentTasks.map((task) => (
+                  <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{task.title}</h4>
+                      <div className="flex items-center space-x-4 mt-1">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          task.status === 'completed' 
+                            ? 'bg-green-100 text-green-800'
+                            : task.status === 'in_progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          task.priority === 'urgent' || task.priority === 'high'
+                            ? 'bg-red-100 text-red-800'
+                            : task.priority === 'medium'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {task.priority}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">
+                        Due: {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        }) : 'No due date'}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Due: {task.dueDate}</p>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-            <Button className="w-full mt-4" variant="outline">
-              View All Tasks
-            </Button>
+            <Link href="/dashboard/tasks">
+              <Button className="w-full mt-4" variant="outline">
+                View All Tasks
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

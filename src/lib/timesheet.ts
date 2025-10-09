@@ -22,7 +22,7 @@ export interface TimesheetSummary {
 export interface TimesheetResponse {
   success: boolean
   message: string
-  data: any
+  data: unknown
 }
 
 // Get available projects for a user

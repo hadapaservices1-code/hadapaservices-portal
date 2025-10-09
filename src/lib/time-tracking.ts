@@ -17,19 +17,82 @@ export interface ClockInOutResponse {
 // Get current time tracking status for a user
 export async function getCurrentTimeStatus(userId: string): Promise<TimeTrackingStatus | null> {
   try {
+    // Check if time_tracking table exists
+    const { data: testData, error: testError } = await supabase
+      .from('time_tracking')
+      .select('id')
+      .limit(1)
+
+    if (testError && testError.code === 'PGRST116') {
+      // Table doesn't exist yet, return default status
+      console.log('Time tracking tables not yet created. Please run the database schema.')
+      return {
+        is_clocked_in: false,
+        current_time_in: null,
+        today_total_hours: 0,
+        status: 'offline'
+      }
+    }
+
+    // Try RPC function first
     const { data, error } = await supabase
       .rpc('get_current_time_status', { user_uuid: userId })
       .single()
 
     if (error) {
-      console.error('Error fetching time status:', error)
-      return null
+      console.log('RPC function not available, using direct query')
+      
+      // Fallback to direct query
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('time_tracking')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', new Date().toISOString().split('T')[0])
+        .order('clock_in_time', { ascending: false })
+        .limit(1)
+
+      if (fallbackError) {
+        console.error('Error fetching time status via fallback:', fallbackError)
+        // Return default status instead of null to prevent crashes
+        return {
+          is_clocked_in: false,
+          current_time_in: null,
+          today_total_hours: 0,
+          status: 'offline'
+        }
+      }
+
+      const record = fallbackData?.[0]
+      if (!record) {
+        return {
+          is_clocked_in: false,
+          current_time_in: null,
+          today_total_hours: 0,
+          status: 'offline'
+        }
+      }
+
+      const isClockedIn = !record.clock_out_time
+      const todayTotalHours = record.total_hours || 0
+
+      return {
+        is_clocked_in: isClockedIn,
+        current_time_in: isClockedIn ? record.clock_in_time : null,
+        today_total_hours: todayTotalHours,
+        status: isClockedIn ? 'online' : 'offline'
+      }
     }
 
     return data
   } catch (error) {
     console.error('Error in getCurrentTimeStatus:', error)
-    return null
+    // Return default status instead of null to prevent crashes
+    return {
+      is_clocked_in: false,
+      current_time_in: null,
+      today_total_hours: 0,
+      status: 'offline'
+    }
   }
 }
 

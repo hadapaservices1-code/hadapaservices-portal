@@ -1,10 +1,9 @@
 import { createClient } from "@/lib/supabase-server"
 import { redirect } from "next/navigation"
 import { Sidebar } from "@/components/dashboard/sidebar"
-import { EmployeeDashboard } from "@/components/dashboard/employee-dashboard"
-import { ManagerDashboard } from "@/components/dashboard/manager-dashboard"
+import { TasksPage } from "@/components/dashboard/tasks-page"
 
-export default async function DashboardPage() {
+export default async function TasksPageRoute() {
   const supabase = await createClient()
 
   const {
@@ -36,21 +35,13 @@ export default async function DashboardPage() {
       
       <div className="lg:pl-64">
         <main className="p-6">
-          {profile.role === "employee" ? (
-            <EmployeeDashboard 
-              userName={profile.full_name || "User"}
-              userDepartment={profile.department || undefined}
-              userId={user.id}
-            />
-          ) : (
-            <ManagerDashboard 
-              userName={profile.full_name || "User"}
-              userDepartment={profile.department || undefined}
-              userId={user.id}
-            />
-          )}
+          <TasksPage 
+            userId={user.id}
+            userRole={profile.role}
+          />
         </main>
       </div>
     </div>
   )
 }
+

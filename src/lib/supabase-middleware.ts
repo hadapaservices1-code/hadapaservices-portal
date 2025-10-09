@@ -44,13 +44,15 @@ export async function updateSession(request: NextRequest) {
 
   // Define public paths that don't require authentication
   const publicPaths = ['/login', '/signup', '/auth', '/', '/debug']
+  const isApiPath = request.nextUrl.pathname.startsWith('/api/')
   const isPublicPath = publicPaths.some(path => 
     request.nextUrl.pathname === path || 
     request.nextUrl.pathname.startsWith(path + '/')
   )
 
   // If no user and trying to access protected route, redirect to auth
-  if (!user && !isPublicPath) {
+  // Skip API routes - they handle their own authentication
+  if (!user && !isPublicPath && !isApiPath) {
     console.log('Middleware - Redirecting to auth (no user)')
     const url = request.nextUrl.clone()
     url.pathname = '/auth'

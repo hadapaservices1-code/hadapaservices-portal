@@ -177,7 +177,7 @@ export function TimesheetEntryModal({
 
           <div className="space-y-2">
             <Label htmlFor="task_category">Task Category</Label>
-            <Select onValueChange={(value) => setValue("task_category", value as any)}>
+            <Select onValueChange={(value) => setValue("task_category", value as "development" | "testing" | "documentation" | "meeting" | "other")}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>

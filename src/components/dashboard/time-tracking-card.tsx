@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,7 +17,7 @@ interface TimeTrackingCardProps {
   userName: string
 }
 
-export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
+export function TimeTrackingCard({ userId, _userName }: TimeTrackingCardProps) {
   const [timeStatus, setTimeStatus] = useState<{
     is_clocked_in: boolean
     current_time_in: string | null
@@ -38,7 +38,7 @@ export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
   })
 
   // Fetch time status and weekly hours
-  const fetchTimeData = async () => {
+  const fetchTimeData = useCallback(async () => {
     try {
       const [status, weekly] = await Promise.all([
         getCurrentTimeStatus(userId),
@@ -49,14 +49,14 @@ export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
     } catch (error) {
       console.error('Error fetching time data:', error)
     }
-  }
+  }, [userId])
 
   useEffect(() => {
     fetchTimeData()
     // Refresh every minute
     const interval = setInterval(fetchTimeData, 60000)
     return () => clearInterval(interval)
-  }, [userId])
+  }, [userId, fetchTimeData])
 
   const handleClockIn = async (data: ClockInFormData) => {
     setIsLoading(true)
@@ -104,6 +104,26 @@ export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
       hour12: true
     })
   }
+
+  const [lastUpdated, setLastUpdated] = useState<string>('')
+
+  // Update last updated time on client side only
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setLastUpdated(now.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }))
+    }
+    
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    
+    return () => clearInterval(interval)
+  }, [timeStatus])
 
   const formatDuration = (hours: number) => {
     const wholeHours = Math.floor(hours)
@@ -168,7 +188,7 @@ export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
         {/* Today's Hours */}
         <div className="grid grid-cols-2 gap-4">
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-600 font-medium">Today's Hours</p>
+            <p className="text-sm text-blue-600 font-medium">Today&apos;s Hours</p>
             <p className="text-2xl font-bold text-blue-900">
               {formatDuration(timeStatus?.today_total_hours || 0)}
             </p>
@@ -279,7 +299,7 @@ export function TimeTrackingCard({ userId, userName }: TimeTrackingCardProps) {
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <Timer className="h-4 w-4" />
-              <span>Last updated: {new Date().toLocaleTimeString()}</span>
+              <span>Last updated: {lastUpdated || 'Loading...'}</span>
             </div>
             <Button
               variant="ghost"
