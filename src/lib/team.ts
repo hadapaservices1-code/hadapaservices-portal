@@ -152,64 +152,50 @@ export async function getTeamMembers(_managerId: string): Promise<TeamMember[]> 
 // Get team statistics
 export async function getTeamStats(_managerId: string): Promise<TeamStats | null> {
   try {
-    // First try using the database function
-    const { data, error } = await supabase
-      .rpc('get_all_employees_stats')
+    // Use direct queries instead of database functions
+    const { count: totalMembers } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .in('role', ['employee'])
 
-    if (error) {
-      console.error('Error fetching team stats via function:', error.message || error)
-      
-      // Fallback to direct queries - get all employees
-      const { count: totalMembers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .in('role', ['employee'])
+    // Get all employee IDs
+    const { data: teamMemberIds } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['employee'])
 
-      // Get all employee IDs
-      const { data: teamMemberIds } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('role', ['employee'])
+    const memberIds = teamMemberIds?.map(member => member.id) || []
 
-      const memberIds = teamMemberIds?.map(member => member.id) || []
-
-      // Get task statistics (only if there are team members)
-      let taskData = []
-      if (memberIds.length > 0) {
-        const { data } = await supabase
-          .from('tasks')
-          .select('status')
-          .in('assigned_to', memberIds)
-        taskData = data || []
-      }
-
-      const totalTasks = taskData?.length || 0
-      const completedTasks = taskData?.filter(task => task.status === 'completed').length || 0
-      const productivityRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
-
-      return {
-        total_members: totalMembers || 0,
-        active_members: totalMembers || 0,
-        completed_tasks: completedTasks,
-        total_tasks: totalTasks,
-        productivity_rate: productivityRate
-      }
+    // Get task statistics (only if there are team members)
+    let taskData = []
+    if (memberIds.length > 0) {
+      const { data } = await supabase
+        .from('tasks')
+        .select('status')
+        .in('assigned_to', memberIds)
+      taskData = data || []
     }
 
-    // Transform the function result
-    const stats = data?.[0]
-    if (!stats) return null
+    const totalTasks = taskData?.length || 0
+    const completedTasks = taskData?.filter(task => task.status === 'completed').length || 0
+    const productivityRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
     return {
-      total_members: Number(stats.total_members) || 0,
-      active_members: Number(stats.active_members) || 0,
-      completed_tasks: Number(stats.completed_tasks) || 0,
-      total_tasks: Number(stats.total_tasks) || 0,
-      productivity_rate: Number(stats.productivity_rate) || 0
+      total_members: totalMembers || 0,
+      active_members: totalMembers || 0, // Using total as active for now
+      completed_tasks: completedTasks,
+      total_tasks: totalTasks,
+      productivity_rate: productivityRate
     }
   } catch (error) {
     console.error('Error in getTeamStats:', error)
-    return null
+    return {
+      total_members: 0,
+      active_members: 0,
+      completed_tasks: 0,
+      total_tasks: 0,
+      productivity_rate: 0
+    }
   }
 }
 
@@ -279,51 +265,32 @@ export async function getUpcomingDeadlines(managerId: string): Promise<{
   priority: string
 }[]> {
   try {
-    // First try using the database function
-    const { data, error } = await supabase
-      .rpc('get_upcoming_deadlines', { 
-        manager_uuid: managerId, 
-        limit_count: 5 
-      })
+    // Use direct query instead of database function
+    const { data: projectData, error } = await supabase
+      .from('projects')
+      .select(`
+        id,
+        name,
+        end_date,
+        status,
+        priority
+      `)
+      .eq('created_by', managerId)
+      .gte('end_date', new Date().toISOString().split('T')[0])
+      .order('end_date', { ascending: true })
+      .limit(5)
 
     if (error) {
-      console.error('Error fetching upcoming deadlines via function:', error.message || error)
-      
-      // Fallback to direct query
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          name,
-          end_date,
-          status,
-          priority
-        `)
-        .eq('created_by', managerId)
-        .gte('end_date', new Date().toISOString().split('T')[0])
-        .order('end_date', { ascending: true })
-        .limit(5)
-
-      if (fallbackError) {
-        console.error('Error fetching upcoming deadlines via fallback:', fallbackError)
-        return []
-      }
-
-      return (fallbackData || []).map(project => ({
-        project: project.name,
-        deadline: new Date(project.end_date).toLocaleDateString(),
-        status: project.status === 'in_progress' ? 'On Track' : 
-                project.status === 'planning' ? 'At Risk' : 'On Track',
-        priority: project.priority
-      }))
+      console.error('Error fetching upcoming deadlines:', error)
+      return []
     }
 
-    // Transform the function result
-    return (data || []).map(deadline => ({
-      project: deadline.project_name,
-      deadline: new Date(deadline.deadline).toLocaleDateString(),
-      status: deadline.status,
-      priority: deadline.priority
+    return (projectData || []).map(project => ({
+      project: project.name,
+      deadline: new Date(project.end_date).toLocaleDateString(),
+      status: project.status === 'in_progress' ? 'On Track' : 
+              project.status === 'planning' ? 'At Risk' : 'On Track',
+      priority: project.priority || 'medium'
     }))
   } catch (error) {
     console.error('Error in getUpcomingDeadlines:', error)

@@ -44,22 +44,22 @@ export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDash
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
-        <p className="text-gray-600">Manage and approve leave requests from your team</p>
+        <h1 className="text-xl font-semibold text-gray-900">Leave Management</h1>
+        <p className="text-sm text-gray-600">Manage and approve leave requests from your team</p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-yellow-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Requests</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <Clock className="h-5 w-5 text-amber-600" />
+              <div className="ml-3">
+                <p className="text-xs font-medium text-gray-600">Pending Requests</p>
+                <p className="text-lg font-bold text-gray-900">
                   {isLoading ? '...' : pendingRequests.length}
                 </p>
               </div>
@@ -68,12 +68,12 @@ export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDash
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Approved Today</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
+              <div className="ml-3">
+                <p className="text-xs font-medium text-gray-600">Approved Today</p>
+                <p className="text-lg font-bold text-gray-900">
                   {isLoading ? '...' : 0}
                 </p>
               </div>
@@ -82,12 +82,12 @@ export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDash
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Team Members</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <Users className="h-5 w-5 text-slate-600" />
+              <div className="ml-3">
+                <p className="text-xs font-medium text-gray-600">Team Members</p>
+                <p className="text-lg font-bold text-gray-900">
                   {isLoading ? '...' : 0}
                 </p>
               </div>
@@ -96,12 +96,12 @@ export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDash
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <TrendingUp className="h-5 w-5 text-slate-600" />
+              <div className="ml-3">
+                <p className="text-xs font-medium text-gray-600">This Month</p>
+                <p className="text-lg font-bold text-gray-900">
                   {isLoading ? '...' : 0}
                 </p>
               </div>
@@ -111,7 +111,7 @@ export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDash
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="pending" className="space-y-6">
+      <Tabs defaultValue="pending" className="space-y-4">
         <TabsList>
           <TabsTrigger value="pending" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />

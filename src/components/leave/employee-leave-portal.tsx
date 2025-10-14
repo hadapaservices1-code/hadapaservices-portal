@@ -24,16 +24,16 @@ export function EmployeeLeavePortal({ employeeId, _userName }: EmployeeLeavePort
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Leave Portal</h1>
-          <p className="text-gray-600">Manage your leave requests and track your balance</p>
+          <h1 className="text-xl font-semibold text-gray-900">Leave Portal</h1>
+          <p className="text-sm text-gray-600">Manage your leave requests and track your balance</p>
         </div>
         <Button
           onClick={() => setActiveTab('request')}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 text-sm"
         >
           <Plus className="h-4 w-4" />
           New Request
@@ -41,29 +41,29 @@ export function EmployeeLeavePortal({ employeeId, _userName }: EmployeeLeavePort
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
+          <TabsTrigger value="overview" className="flex items-center gap-1 text-xs">
+            <BarChart3 className="h-3 w-3" />
             Overview
           </TabsTrigger>
-          <TabsTrigger value="requests" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+          <TabsTrigger value="requests" className="flex items-center gap-1 text-xs">
+            <FileText className="h-3 w-3" />
             My Requests
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
+          <TabsTrigger value="history" className="flex items-center gap-1 text-xs">
+            <Calendar className="h-3 w-3" />
             History
           </TabsTrigger>
-          <TabsTrigger value="request" className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
+          <TabsTrigger value="request" className="flex items-center gap-1 text-xs">
+            <Plus className="h-3 w-3" />
             New Request
           </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <LeaveBalanceCard 
               employeeId={employeeId} 
               key={`balance-${refreshKey}`}

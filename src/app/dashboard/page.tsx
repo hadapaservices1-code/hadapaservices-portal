@@ -27,14 +27,14 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Sidebar 
         userRole={profile.role}
         userName={profile.full_name || "User"}
         userDepartment={profile.department || undefined}
       />
       
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         <main className="p-6">
           {profile.role === "employee" ? (
             <EmployeeDashboard 

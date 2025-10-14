@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -10,7 +11,10 @@ import {
   Bell, 
   CheckCircle2,
   AlertCircle,
-  Users
+  Users,
+  Sparkles,
+  TrendingUp,
+  Zap
 } from "lucide-react"
 import { TimeTrackingCard } from "./time-tracking-card"
 import { TimesheetCard } from "./timesheet-card"
@@ -97,14 +101,87 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
   ]
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-6 text-white">
-        <h1 className="text-2xl font-bold mb-2">Welcome back, {userName}!</h1>
-        <p className="text-blue-100">
-          {userDepartment ? `Here's what's happening in ${userDepartment}` : "Here's your dashboard overview"}
-        </p>
-      </div>
+      <motion.div 
+        className="glass border-glass-border rounded-2xl p-6 relative overflow-hidden"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        {/* Animated background gradient */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-primary opacity-90"
+          animate={{ 
+            background: [
+              "linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(262 83% 58%) 100%)",
+              "linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(188 100% 50%) 100%)",
+              "linear-gradient(135deg, hsl(188 100% 50%) 0%, hsl(217 91% 60%) 100%)"
+            ]
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        />
+        
+        {/* Floating particles effect */}
+        <motion.div
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-2 h-2 bg-white/30 rounded-full"
+              style={{
+                left: `${20 + i * 15}%`,
+                top: `${30 + (i % 3) * 20}%`,
+              }}
+              animate={{
+                y: [-20, 20, -20],
+                opacity: [0.3, 0.8, 0.3],
+              }}
+              transition={{
+                duration: 3 + i * 0.5,
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </motion.div>
+
+        <div className="relative z-10">
+          <motion.h1 
+            className="text-2xl font-bold mb-2 text-white"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            Welcome back, {userName}! 
+            <motion.span
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              className="inline-block ml-2"
+            >
+              👋
+            </motion.span>
+          </motion.h1>
+          <motion.p 
+            className="text-white/90 text-sm flex items-center gap-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Sparkles className="h-4 w-4" />
+            {userDepartment ? `Here's what's happening in ${userDepartment}` : "Here's your dashboard overview"}
+          </motion.p>
+        </div>
+      </motion.div>
 
       {/* Time Tracking Card */}
       {userId && (
@@ -122,25 +199,64 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
       )}
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-xs text-gray-500">{stat.change}</p>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.1 }}
+            >
+              <Card variant="glass" hover className="group">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">{stat.title}</p>
+                      <motion.p 
+                        className="text-3xl font-bold text-foreground"
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.6 + index * 0.1, type: "spring", stiffness: 200 }}
+                      >
+                        {stat.value}
+                      </motion.p>
+                      <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
+                    </div>
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 10 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <Icon className={`h-8 w-8 ${stat.color} group-hover:drop-shadow-lg`} />
+                    </motion.div>
                   </div>
-                  <Icon className={`h-8 w-8 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
+                  
+                  {/* Animated progress bar */}
+                  <motion.div
+                    className="mt-4 h-1 bg-muted rounded-full overflow-hidden"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.8 + index * 0.1 }}
+                  >
+                    <motion.div
+                      className="h-full bg-gradient-primary rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${Math.min(100, parseInt(stat.value) * 10)}%` }}
+                      transition={{ delay: 1 + index * 0.1, duration: 1, ease: "easeOut" }}
+                    />
+                  </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
           )
         })}
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Tasks */}
@@ -271,6 +387,6 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
           </div>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   )
 }

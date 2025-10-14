@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { ManagerTimeTrackingDashboard } from '@/components/dashboard/manager-time-tracking-dashboard'
+import { BackButton } from '@/components/ui/back-button'
 
 export default function TimeTrackingPage() {
   const [user, setUser] = useState<{ id: string } | null>(null)
@@ -69,6 +70,9 @@ export default function TimeTrackingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-white">
+        <BackButton />
+      </div>
       <div className="p-6">
         <ManagerTimeTrackingDashboard 
           managerId={profile.id} 

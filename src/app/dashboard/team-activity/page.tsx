@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase-client'
 import { TeamActivityDashboard } from '@/components/dashboard/team-activity-dashboard'
+import { BackButton } from '@/components/ui/back-button'
 
 export default function TeamActivityPage() {
   const [user, setUser] = useState<{ id: string } | null>(null)
@@ -69,6 +70,9 @@ export default function TeamActivityPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <div className="p-4 border-b border-gray-200 bg-white">
+        <BackButton />
+      </div>
       <div className="p-6">
         <TeamActivityDashboard managerId={profile.id} />
       </div>
