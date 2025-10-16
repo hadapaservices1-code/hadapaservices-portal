@@ -17,6 +17,7 @@ import {
   type LeaveRequestWithDetails 
 } from '@/lib/leave'
 import { toast } from 'sonner'
+import { showSuccessToast } from '@/components/ui/success-toast'
 import { LeaveRequestDetailsModal } from './leave-request-details-modal'
 
 interface LeaveRequestsListProps {
@@ -51,7 +52,10 @@ export function LeaveRequestsList({ employeeId, onRefresh }: LeaveRequestsListPr
     try {
       const result = await cancelLeaveRequest(requestId)
       if (result.success) {
-        toast.success('Leave request cancelled successfully')
+        showSuccessToast({
+          title: 'Leave Request Cancelled! ❌',
+          description: 'Your leave request has been cancelled successfully.',
+        })
         fetchRequests()
         onRefresh?.()
       } else {

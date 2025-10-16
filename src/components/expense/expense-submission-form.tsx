@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { expenseSubmissionSchema, type ExpenseSubmissionFormData } from "@/lib/validations"
 import { getExpenseCategories, createExpense, type ExpenseCategory } from "@/lib/expenses"
 import { toast } from "sonner"
+import { SuccessToasts } from "@/components/ui/success-toast"
 import { Loader2, Receipt, DollarSign, Calendar, FileText, Tag } from "lucide-react"
 
 interface ExpenseSubmissionFormProps {
@@ -79,7 +80,7 @@ export function ExpenseSubmissionForm({
       })
 
       if (result.success) {
-        toast.success('Expense submitted successfully')
+        SuccessToasts.expenseSubmitted()
         reset()
         onExpenseSubmitted?.()
       } else {

@@ -20,6 +20,7 @@ import {
   type LeaveRequestWithDetails 
 } from '@/lib/leave'
 import { toast } from 'sonner'
+import { SuccessToasts } from '@/components/ui/success-toast'
 import { LeaveRequestDetailsModal } from './leave-request-details-modal'
 
 interface ManagerLeaveApprovalProps {
@@ -69,7 +70,7 @@ export function ManagerLeaveApproval({ managerId, onRefresh }: ManagerLeaveAppro
       )
 
       if (result.success) {
-        toast.success('Leave request approved successfully')
+        SuccessToasts.leaveApproved()
         setApprovalComment('')
         fetchRequests()
         onRefresh?.()
@@ -99,7 +100,7 @@ export function ManagerLeaveApproval({ managerId, onRefresh }: ManagerLeaveAppro
       )
 
       if (result.success) {
-        toast.success('Leave request rejected')
+        SuccessToasts.leaveRejected()
         setApprovalComment('')
         fetchRequests()
         onRefresh?.()

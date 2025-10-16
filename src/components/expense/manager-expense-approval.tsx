@@ -33,6 +33,7 @@ import {
 } from "@/lib/expenses"
 import { expenseApprovalSchema, expenseCommentSchema, type ExpenseApprovalFormData, type ExpenseCommentFormData } from "@/lib/validations"
 import { toast } from "sonner"
+import { SuccessToasts } from "@/components/ui/success-toast"
 import { format } from "date-fns"
 
 interface ManagerExpenseApprovalProps {
@@ -118,7 +119,13 @@ export function ManagerExpenseApproval({ managerId, onRefresh }: ManagerExpenseA
       )
 
       if (result.success) {
-        toast.success(`Expense ${data.status} successfully`)
+        if (data.status === 'approved') {
+          SuccessToasts.expenseApproved()
+        } else if (data.status === 'rejected') {
+          SuccessToasts.expenseRejected()
+        } else {
+          toast.success(`Expense ${data.status} successfully`)
+        }
         fetchExpenses()
         onRefresh?.()
         setSelectedExpense(null)

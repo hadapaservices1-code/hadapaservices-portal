@@ -107,7 +107,12 @@ export async function clockIn(userId: string, notes?: string): Promise<ClockInOu
       .single()
 
     if (error) {
-      console.error('Error clocking in:', error)
+      console.error('Error clocking in:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return {
         success: false,
         message: error.message || 'Failed to clock in',
@@ -117,7 +122,11 @@ export async function clockIn(userId: string, notes?: string): Promise<ClockInOu
 
     return data
   } catch (error) {
-    console.error('Error in clockIn:', error)
+    console.error('Error in clockIn:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error
+    })
     return {
       success: false,
       message: 'An unexpected error occurred',
@@ -137,7 +146,12 @@ export async function clockOut(userId: string, notes?: string): Promise<ClockInO
       .single()
 
     if (error) {
-      console.error('Error clocking out:', error)
+      console.error('Error clocking out:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return {
         success: false,
         message: error.message || 'Failed to clock out',
@@ -147,7 +161,11 @@ export async function clockOut(userId: string, notes?: string): Promise<ClockInO
 
     return data
   } catch (error) {
-    console.error('Error in clockOut:', error)
+    console.error('Error in clockOut:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error
+    })
     return {
       success: false,
       message: 'An unexpected error occurred',
@@ -179,13 +197,22 @@ export async function getTimeTrackingHistory(
     const { data, error } = await query
 
     if (error) {
-      console.error('Error fetching time tracking history:', error)
+      console.error('Error fetching time tracking history:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return []
     }
 
     return data || []
   } catch (error) {
-    console.error('Error in getTimeTrackingHistory:', error)
+    console.error('Error in getTimeTrackingHistory:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error
+    })
     return []
   }
 }
@@ -207,7 +234,12 @@ export async function getTodayTimeTracking(userId: string): Promise<TimeTracking
         // No record found for today
         return null
       }
-      console.error('Error fetching today\'s time tracking:', error)
+      console.error('Error fetching today\'s time tracking:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return null
     }
 

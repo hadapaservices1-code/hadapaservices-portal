@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+/* Custom Success Toast Animations */
+.success-toast {
+  @apply border-green-200 bg-green-50;
+}
+
+.success-toast [data-sonner-toast] {
+  @apply border-green-200 bg-white shadow-lg;
+}
+
+.success-toast [data-sonner-toast] [data-icon] {
+  @apply text-green-500;
+}
+
+/* Animation keyframes for success toast */
+@keyframes success-bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+.success-toast [data-sonner-toast] {
+  animation: success-bounce 0.6s ease-in-out;
+}
+
 @theme {
   --color-background: #0a0a0a;
   --color-foreground: #fafafa;

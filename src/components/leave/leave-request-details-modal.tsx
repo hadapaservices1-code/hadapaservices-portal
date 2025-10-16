@@ -14,6 +14,7 @@ import {
   type LeaveComment 
 } from '@/lib/leave'
 import { toast } from 'sonner'
+import { showSuccessToast } from '@/components/ui/success-toast'
 
 interface LeaveRequestDetailsModalProps {
   request: LeaveRequestWithDetails
@@ -67,7 +68,10 @@ export function LeaveRequestDetailsModal({
       )
 
       if (result.success) {
-        toast.success('Comment added successfully')
+        showSuccessToast({
+          title: 'Comment Added! 💬',
+          description: 'Your comment has been added successfully.',
+        })
         setNewComment('')
         fetchDetails()
         onRefresh?.()

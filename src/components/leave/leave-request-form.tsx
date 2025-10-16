@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { leaveRequestSchema, type LeaveRequestFormData } from '@/lib/validations'
 import { getLeaveTypes, type LeaveType } from '@/lib/leave'
 import { toast } from 'sonner'
+import { SuccessToasts } from '@/components/ui/success-toast'
 
 interface LeaveRequestFormProps {
   employeeId: string
@@ -100,7 +101,7 @@ export function LeaveRequestForm({ employeeId, onSuccess }: LeaveRequestFormProp
       console.log('Leave request result:', result)
 
       if (result.success) {
-        toast.success('Leave request submitted successfully!')
+        SuccessToasts.leaveSubmitted()
         reset()
         setSelectedLeaveType(null)
         onSuccess?.()
