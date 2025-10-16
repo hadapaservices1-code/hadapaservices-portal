@@ -46,7 +46,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}
-        {...props}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        {...(props as any)}
       >
         <span className="relative z-10">{children}</span>
         {/* Animated background effect */}

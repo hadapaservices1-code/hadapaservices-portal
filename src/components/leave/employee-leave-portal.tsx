@@ -15,7 +15,7 @@ interface EmployeeLeavePortalProps {
   userName: string
 }
 
-export function EmployeeLeavePortal({ employeeId, _userName }: EmployeeLeavePortalProps) {
+export function EmployeeLeavePortal({ employeeId, userName: _userName }: EmployeeLeavePortalProps) {
   const [activeTab, setActiveTab] = useState('overview')
   const [refreshKey, setRefreshKey] = useState(0)
 

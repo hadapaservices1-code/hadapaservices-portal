@@ -20,7 +20,8 @@ import {
   Plane,
   Activity,
   Clock,
-  Sparkles
+  Sparkles,
+  FolderOpen
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -41,6 +42,7 @@ const employeeNavItems = [
 const managerNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Team", href: "/dashboard/team", icon: Users },
+  { name: "Projects", href: "/dashboard/projects", icon: FolderOpen },
   { name: "Team Activity", href: "/dashboard/team-activity", icon: Activity },
   { name: "Time Tracking", href: "/dashboard/time-tracking", icon: Clock },
   { name: "Leave", href: "/dashboard/leave", icon: Plane },

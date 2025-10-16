@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { LoginForm } from "@/components/auth/login-form"
 import { SignupForm } from "@/components/auth/signup-form"
 import { Building2, Sparkles } from "lucide-react"
-import { BackButton } from "@/components/ui/back-button"
+
+// Seeded random number generator for consistent SSR/CSR
+function seededRandom(seed: number) {
+  const x = Math.sin(seed) * 10000
+  return x - Math.floor(x)
+}
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
@@ -27,33 +37,40 @@ export default function AuthPage() {
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       />
       
-      {/* Floating particles */}
-      <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-1 h-1 bg-primary/30 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-            animate={{
-              y: [-20, 20, -20],
-              opacity: [0.3, 0.8, 0.3],
-              scale: [0.5, 1, 0.5],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 2,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
-      </div>
+      {/* Floating particles - only render on client to avoid hydration mismatch */}
+      {isClient && (
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => {
+            const seed = i * 12345 + 67890 // Consistent seed for each particle
+            const left = seededRandom(seed) * 100
+            const top = seededRandom(seed + 1) * 100
+            const duration = 3 + seededRandom(seed + 2) * 2
+            const delay = seededRandom(seed + 3) * 2
+            
+            return (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-primary/30 rounded-full"
+                style={{
+                  left: `${left}%`,
+                  top: `${top}%`,
+                }}
+                animate={{
+                  y: [-20, 20, -20],
+                  opacity: [0.3, 0.8, 0.3],
+                  scale: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration,
+                  repeat: Infinity,
+                  delay,
+                }}
+              />
+            )
+          })}
+        </div>
+      )}
 
-      <div className="absolute top-4 left-4 z-10">
-        <BackButton fallbackPath="/" variant="glass" />
-      </div>
       
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center relative z-10">
         {/* Left side - Branding */}

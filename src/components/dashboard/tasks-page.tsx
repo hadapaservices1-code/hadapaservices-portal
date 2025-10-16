@@ -99,6 +99,15 @@ export function TasksPage({ userId, userRole }: TasksPageProps) {
 
   const handleStatusUpdate = async (taskId: string, newStatus: string) => {
     try {
+      // Check if this is a timesheet entry
+      const task = tasks.find(t => t.id === taskId)
+      if (task?.is_timesheet_entry) {
+        // For timesheet entries, we can't change status directly
+        // They are managed through the timesheet system
+        alert('Timesheet entries cannot be updated through task management. Please use the timesheet system.')
+        return
+      }
+
       const result = await updateTaskStatus(taskId, newStatus as 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold', userId)
       if (result.success) {
         await fetchTasks() // Refresh tasks
@@ -314,12 +323,19 @@ export function TasksPage({ userId, userRole }: TasksPageProps) {
           </Card>
         ) : (
           filteredTasks.map((task) => (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
+            <Card key={task.id} className={`hover:shadow-md transition-shadow ${task.is_timesheet_entry ? 'border-l-4 border-l-blue-500' : ''}`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {task.title}
+                        {task.is_timesheet_entry && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            Timesheet Entry
+                          </span>
+                        )}
+                      </h3>
                       <Badge className={getStatusColor(task.status)}>
                         {getStatusIcon(task.status)}
                         <span className="ml-1 capitalize">{task.status.replace('_', ' ')}</span>
@@ -338,16 +354,36 @@ export function TasksPage({ userId, userRole }: TasksPageProps) {
                         <div className="flex items-center space-x-1">
                           <Calendar className="h-4 w-4" />
                           <span className={isOverdue(task.due_date, task.status) ? 'text-red-600 font-medium' : ''}>
-                            Due: {formatDate(task.due_date)}
+                            {task.is_timesheet_entry ? 'Date: ' : 'Due: '}{formatDate(task.due_date)}
                           </span>
                         </div>
                       )}
                       
-                      {task.estimated_hours && (
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-4 w-4" />
-                          <span>{task.estimated_hours}h estimated</span>
-                        </div>
+                      {task.is_timesheet_entry ? (
+                        <>
+                          {task.hours_worked && (
+                            <div className="flex items-center space-x-1">
+                              <Clock className="h-4 w-4" />
+                              <span>{task.hours_worked}h worked</span>
+                            </div>
+                          )}
+                          {task.billable !== undefined && (
+                            <div className="flex items-center space-x-1">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                task.billable ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {task.billable ? 'Billable' : 'Non-billable'}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        task.estimated_hours && (
+                          <div className="flex items-center space-x-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{task.estimated_hours}h estimated</span>
+                          </div>
+                        )
                       )}
                       
                       {task.project_name && (
@@ -370,32 +406,42 @@ export function TasksPage({ userId, userRole }: TasksPageProps) {
                   </div>
                   
                   <div className="flex items-center space-x-2 ml-4">
-                    {task.status === 'pending' && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusUpdate(task.id, 'in_progress')}
-                      >
-                        Start
-                      </Button>
+                    {task.is_timesheet_entry ? (
+                      <div className="text-sm text-gray-500">
+                        <span className="text-blue-600 font-medium">Timesheet Entry</span>
+                        <br />
+                        <span className="text-xs">Managed via timesheet system</span>
+                      </div>
+                    ) : (
+                      <>
+                        {task.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusUpdate(task.id, 'in_progress')}
+                          >
+                            Start
+                          </Button>
+                        )}
+                        
+                        {task.status === 'in_progress' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusUpdate(task.id, 'completed')}
+                          >
+                            Complete
+                          </Button>
+                        )}
+                        
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedTask(task)}
+                        >
+                          View Details
+                        </Button>
+                      </>
                     )}
-                    
-                    {task.status === 'in_progress' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleStatusUpdate(task.id, 'completed')}
-                      >
-                        Complete
-                      </Button>
-                    )}
-                    
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setSelectedTask(task)}
-                    >
-                      View Details
-                    </Button>
                   </div>
                 </div>
               </CardContent>

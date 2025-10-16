@@ -13,7 +13,7 @@ interface ManagerLeaveDashboardProps {
   userName: string
 }
 
-export function ManagerLeaveDashboard({ managerId, _userName }: ManagerLeaveDashboardProps) {
+export function ManagerLeaveDashboard({ managerId, userName: _userName }: ManagerLeaveDashboardProps) {
   const [pendingRequests, setPendingRequests] = useState<LeaveRequestWithDetails[]>([])
   const [_stats, setStats] = useState<LeaveStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)

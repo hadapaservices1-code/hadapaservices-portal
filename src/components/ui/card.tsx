@@ -29,7 +29,8 @@ const Card = React.forwardRef<
       animate={{ opacity: 1, y: 0 }}
       whileHover={hover ? { scale: 1.02, y: -5 } : {}}
       transition={{ duration: 0.3 }}
-      {...props}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {...(props as any)}
     >
       {/* Animated background gradient */}
       <motion.div
@@ -54,7 +55,8 @@ const CardHeader = React.forwardRef<
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.1 }}
-    {...props}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
   />
 ))
 CardHeader.displayName = "CardHeader"
@@ -75,7 +77,8 @@ const CardTitle = React.forwardRef<
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.2 }}
-    {...props}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
   />
 ))
 CardTitle.displayName = "CardTitle"
@@ -90,7 +93,8 @@ const CardDescription = React.forwardRef<
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.3 }}
-    {...props}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
   />
 ))
 CardDescription.displayName = "CardDescription"
@@ -105,7 +109,8 @@ const CardContent = React.forwardRef<
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.4 }}
-    {...props}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
   />
 ))
 CardContent.displayName = "CardContent"
@@ -120,7 +125,8 @@ const CardFooter = React.forwardRef<
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.5 }}
-    {...props}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
   />
 ))
 CardFooter.displayName = "CardFooter"

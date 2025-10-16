@@ -43,7 +43,7 @@ export async function updateSession(request: NextRequest) {
   })
 
   // Define public paths that don't require authentication
-  const publicPaths = ['/login', '/signup', '/auth', '/', '/debug']
+  const publicPaths = ['/login', '/signup', '/auth', '/', '/debug', '/debug-auth']
   const isApiPath = request.nextUrl.pathname.startsWith('/api/')
   const isPublicPath = publicPaths.some(path => 
     request.nextUrl.pathname === path || 

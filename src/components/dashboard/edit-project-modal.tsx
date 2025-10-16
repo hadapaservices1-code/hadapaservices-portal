@@ -4,8 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { projectSchema, type ProjectFormData } from "@/lib/validations"
-import { createProject } from "@/lib/projects"
-import { createClient } from "@/lib/supabase-client"
+import { updateProject, type Project } from "@/lib/projects"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Select,
@@ -25,14 +23,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, Plus, FileText } from "lucide-react"
+import { Loader2, Edit } from "lucide-react"
 
-interface CreateProjectModalProps {
-  onProjectCreated?: () => void
+interface EditProjectModalProps {
+  project: Project
+  isOpen: boolean
+  onClose: () => void
+  onProjectUpdated: () => void
 }
 
-export function CreateProjectModal({ onProjectCreated }: CreateProjectModalProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function EditProjectModal({ 
+  project, 
+  isOpen, 
+  onClose, 
+  onProjectUpdated 
+}: EditProjectModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,8 +47,17 @@ export function CreateProjectModal({ onProjectCreated }: CreateProjectModalProps
     formState: { errors },
     reset,
     setValue,
+    watch
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
+    defaultValues: {
+      name: project.name,
+      description: project.description,
+      startDate: project.start_date,
+      endDate: project.end_date,
+      priority: project.priority,
+      status: project.status
+    }
   })
 
   const onSubmit = async (data: ProjectFormData) => {
@@ -51,16 +65,7 @@ export function CreateProjectModal({ onProjectCreated }: CreateProjectModalProps
     setError(null)
 
     try {
-      const supabase = createClient()
-      
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        setError("You must be logged in to create a project")
-        return
-      }
-
-      const result = await createProject(user.id, {
+      const result = await updateProject(project.id, project.created_by, {
         name: data.name,
         description: data.description,
         start_date: data.startDate,
@@ -70,52 +75,36 @@ export function CreateProjectModal({ onProjectCreated }: CreateProjectModalProps
       })
 
       if (result.success) {
-        // Reset form and close modal
-        reset()
-        setIsOpen(false)
-        
-        // Notify parent component
-        if (onProjectCreated) {
-          onProjectCreated()
-        }
+        onProjectUpdated()
       } else {
         setError(result.message)
       }
-    } catch (err) {
-      console.error("Project creation error:", err)
-      setError("An unexpected error occurred. Please try again.")
+    } catch (error) {
+      console.error('Error updating project:', error)
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open)
-    if (!open) {
+  const handleClose = () => {
+    if (!isLoading) {
       reset()
       setError(null)
+      onClose()
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
-          className="h-20 flex flex-col items-center justify-center space-y-2 !bg-[#3c7dc7]/20 !border-[#3c7dc7]/30 hover:!bg-[#3c7dc7]/30 hover:!border-[#3c7dc7]/50 text-black hover:text-black transition-all duration-200"
-        >
-          <FileText className="h-6 w-6" />
-          <span>Create Project</span>
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
-            <Plus className="h-5 w-5" />
-            <span>Create New Project</span>
+            <Edit className="h-5 w-5" />
+            <span>Edit Project</span>
           </DialogTitle>
           <DialogDescription>
-            Create a new project for your team. Fill in the details below to get started.
+            Update the project details below
           </DialogDescription>
         </DialogHeader>
         
@@ -222,14 +211,14 @@ export function CreateProjectModal({ onProjectCreated }: CreateProjectModalProps
             <Button
               type="button"
               variant="outline"
-              onClick={() => handleOpenChange(false)}
+              onClick={handleClose}
               disabled={isLoading}
             >
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Project
+              Update Project
             </Button>
           </div>
         </form>

@@ -153,39 +153,40 @@ export async function getTeamMembers(_managerId: string): Promise<TeamMember[]> 
 export async function getTeamStats(_managerId: string): Promise<TeamStats | null> {
   try {
     // Use direct queries instead of database functions
-    const { count: totalMembers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true })
-      .in('role', ['employee'])
+      const { count: totalMembers } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .in('role', ['employee'])
 
-    // Get all employee IDs
-    const { data: teamMemberIds } = await supabase
-      .from('profiles')
-      .select('id')
-      .in('role', ['employee'])
+      // Get all employee IDs
+      const { data: teamMemberIds } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('role', ['employee'])
 
-    const memberIds = teamMemberIds?.map(member => member.id) || []
+      const memberIds = teamMemberIds?.map(member => member.id) || []
 
-    // Get task statistics (only if there are team members)
-    let taskData = []
-    if (memberIds.length > 0) {
-      const { data } = await supabase
-        .from('tasks')
-        .select('status')
-        .in('assigned_to', memberIds)
-      taskData = data || []
-    }
+      // Get task statistics (only if there are team members)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let taskData: any[] = []
+      if (memberIds.length > 0) {
+        const { data } = await supabase
+          .from('tasks')
+          .select('status')
+          .in('assigned_to', memberIds)
+        taskData = data || []
+      }
 
-    const totalTasks = taskData?.length || 0
-    const completedTasks = taskData?.filter(task => task.status === 'completed').length || 0
-    const productivityRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+      const totalTasks = taskData?.length || 0
+      const completedTasks = taskData?.filter(task => task.status === 'completed').length || 0
+      const productivityRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-    return {
-      total_members: totalMembers || 0,
+      return {
+        total_members: totalMembers || 0,
       active_members: totalMembers || 0, // Using total as active for now
-      completed_tasks: completedTasks,
-      total_tasks: totalTasks,
-      productivity_rate: productivityRate
+        completed_tasks: completedTasks,
+        total_tasks: totalTasks,
+        productivity_rate: productivityRate
     }
   } catch (error) {
     console.error('Error in getTeamStats:', error)
@@ -217,7 +218,8 @@ export async function getRecentTeamActivities(_managerId: string): Promise<{
     const memberIds = teamMemberIds?.map(member => member.id) || []
 
     // Get recent tasks for team members
-    let fallbackData = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let fallbackData: any[] = []
     let fallbackError = null
     if (memberIds.length > 0) {
       const result = await supabase
@@ -267,29 +269,29 @@ export async function getUpcomingDeadlines(managerId: string): Promise<{
   try {
     // Use direct query instead of database function
     const { data: projectData, error } = await supabase
-      .from('projects')
-      .select(`
-        id,
-        name,
-        end_date,
-        status,
-        priority
-      `)
-      .eq('created_by', managerId)
-      .gte('end_date', new Date().toISOString().split('T')[0])
-      .order('end_date', { ascending: true })
-      .limit(5)
+        .from('projects')
+        .select(`
+          id,
+          name,
+          end_date,
+          status,
+          priority
+        `)
+        .eq('created_by', managerId)
+        .gte('end_date', new Date().toISOString().split('T')[0])
+        .order('end_date', { ascending: true })
+        .limit(5)
 
     if (error) {
       console.error('Error fetching upcoming deadlines:', error)
-      return []
-    }
+        return []
+      }
 
     return (projectData || []).map(project => ({
-      project: project.name,
-      deadline: new Date(project.end_date).toLocaleDateString(),
-      status: project.status === 'in_progress' ? 'On Track' : 
-              project.status === 'planning' ? 'At Risk' : 'On Track',
+        project: project.name,
+        deadline: new Date(project.end_date).toLocaleDateString(),
+        status: project.status === 'in_progress' ? 'On Track' : 
+                project.status === 'planning' ? 'At Risk' : 'On Track',
       priority: project.priority || 'medium'
     }))
   } catch (error) {
@@ -465,9 +467,26 @@ export async function getTeamMembersWithActivity(managerId: string): Promise<Tea
           totalTasks: memberTasks.length,
           lastActivity: memberLeaves[0]?.applied_at || memberTimeEntries[0]?.created_at || member.created_at
         },
-        recentLeaves: memberLeaves.slice(0, 3),
+        recentLeaves: memberLeaves.slice(0, 3).map(leave => ({
+          id: leave.id as string,
+          status: leave.status as string,
+          start_date: leave.start_date as string,
+          end_date: leave.end_date as string,
+          applied_at: leave.applied_at as string,
+          leave_types: leave.leave_types?.[0] ? { name: leave.leave_types[0].name as string } : undefined
+        })),
         recentTimeEntries: memberTimeEntries.slice(0, 5),
-        recentTasks: memberTasks.slice(0, 3)
+        recentTasks: memberTasks.slice(0, 3).map(task => ({
+          id: task.id as string,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          title: (task as any).title as string || 'Untitled Task',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          description: (task as any).description as string,
+          status: task.status as string,
+          priority: task.priority as string,
+          due_date: task.due_date as string,
+          created_at: task.created_at as string
+        }))
       }
     })
   } catch (error) {

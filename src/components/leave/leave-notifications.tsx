@@ -91,47 +91,68 @@ export function LeaveNotifications({ employeeId, managerId, onNotificationClick 
 
     if (eventType === 'INSERT' && newRecord) {
       // New leave request created
-      if (managerId && newRecord.manager_id === managerId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (managerId && (newRecord as any).manager_id === managerId) {
+        const record = newRecord as {
+          id: string
+          employee_name: string
+          leave_type_name: string
+          start_date: string
+          end_date: string
+        }
+        
         const notification: LeaveNotification = {
           id: `new-${Date.now()}`,
           type: 'pending',
-          message: `New leave request from ${(newRecord as any).employee_name}`,
+          message: `New leave request from ${record.employee_name}`,
           timestamp: new Date(),
-          leaveRequestId: (newRecord as any).id,
+          leaveRequestId: record.id,
           isRead: false
         }
         
         setNotifications(prev => [notification, ...prev])
         
-        toast.success(`New leave request from ${(newRecord as any).employee_name}`, {
-          description: `${(newRecord as any).leave_type_name} - ${(newRecord as any).start_date} to ${(newRecord as any).end_date}`,
+        toast.success(`New leave request from ${record.employee_name}`, {
+          description: `${record.leave_type_name} - ${record.start_date} to ${record.end_date}`,
           duration: 5000
         })
       }
     } else if (eventType === 'UPDATE' && newRecord && oldRecord) {
       // Leave request status changed
-      if (employeeId && (newRecord as any).employee_id === employeeId) {
+      const updateRecord = newRecord as {
+        employee_id: string
+        status: string
+        id: string
+      }
+      
+      if (employeeId && updateRecord.employee_id === employeeId) {
         const statusMessages = {
           approved: 'Your leave request has been approved! 🎉',
           rejected: 'Your leave request has been rejected',
           cancelled: 'Your leave request has been cancelled'
         }
 
-        const message = statusMessages[(newRecord as any).status as keyof typeof statusMessages]
+        const message = statusMessages[updateRecord.status as keyof typeof statusMessages]
         if (message) {
           const notification: LeaveNotification = {
             id: `update-${Date.now()}`,
-            type: (newRecord as any).status,
+            type: updateRecord.status as 'approved' | 'rejected' | 'cancelled',
             message,
             timestamp: new Date(),
-            leaveRequestId: (newRecord as any).id,
+            leaveRequestId: updateRecord.id,
             isRead: false
           }
           
           setNotifications(prev => [notification, ...prev])
           
+          const toastRecord = newRecord as {
+            leave_type_name: string
+            start_date: string
+            end_date: string
+          }
+          
           toast.success(message, {
-            description: `${(newRecord as any).leave_type_name} - ${(newRecord as any).start_date} to ${(newRecord as any).end_date}`,
+            description: `${toastRecord.leave_type_name} - ${toastRecord.start_date} to ${toastRecord.end_date}`,
             duration: 5000
           })
         }

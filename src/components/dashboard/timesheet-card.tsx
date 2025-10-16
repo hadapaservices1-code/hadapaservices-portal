@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
-import { Clock, Plus, FileText, CheckCircle2, AlertCircle, Calendar } from "lucide-react"
+import { Clock, Plus, FileText, CheckCircle2, AlertCircle, Calendar, RefreshCw } from "lucide-react"
+import { createClient } from "@/lib/supabase-client"
 import { 
   getCurrentWeekTimesheet, 
   getCurrentWeekTotalHours, 
@@ -57,6 +58,35 @@ export function TimesheetCard({ userId, userName: _userName }: TimesheetCardProp
   useEffect(() => {
     fetchTimesheetData()
   }, [userId, fetchTimesheetData])
+
+  // Set up real-time subscription for project changes
+  useEffect(() => {
+    if (!userId) return
+
+    const supabase = createClient()
+    const subscription = supabase
+      .channel('timesheet-projects-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        (payload) => {
+          console.log('Project change detected in timesheet card:', payload)
+          // Refresh projects when any change occurs
+          getAvailableProjects(userId).then(projects => {
+            setAvailableProjects(projects)
+          })
+        }
+      )
+      .subscribe()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [userId])
 
   // Update last updated time on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -161,12 +191,23 @@ export function TimesheetCard({ userId, userName: _userName }: TimesheetCardProp
             </p>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-600 font-medium">Available Projects</p>
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <p className="text-sm text-green-600 font-medium">Available Projects</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchTimesheetData}
+                disabled={isLoading}
+                className="h-6 w-6 p-0 hover:bg-green-100"
+              >
+                <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
             <p className="text-2xl font-bold text-green-900">
               {availableProjects.length}
             </p>
             <p className="text-xs text-green-500">
-              Active projects
+              {availableProjects.length > 0 ? 'Active projects' : 'No projects available'}
             </p>
           </div>
         </div>
@@ -175,7 +216,7 @@ export function TimesheetCard({ userId, userName: _userName }: TimesheetCardProp
         <div className="flex space-x-3">
           <Dialog open={isEntryModalOpen} onOpenChange={setIsEntryModalOpen}>
             <DialogTrigger asChild>
-              <Button className="flex-1" size="lg" disabled={availableProjects.length === 0}>
+              <Button className="flex-1" size="lg">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Entry
               </Button>
@@ -184,8 +225,11 @@ export function TimesheetCard({ userId, userName: _userName }: TimesheetCardProp
               <TimesheetEntryModal
                 userId={userId}
                 availableProjects={availableProjects}
-                onEntryAdded={fetchTimesheetData}
+                onEntryAdded={() => {
+                  fetchTimesheetData() // This will refresh projects too
+                }}
                 onClose={() => setIsEntryModalOpen(false)}
+                isOpen={isEntryModalOpen}
               />
             </DialogContent>
           </Dialog>

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { TimesheetEntry } from './timesheet'
 
 export interface Task {
   id: string
@@ -18,6 +19,12 @@ export interface Task {
   updated_at: string
   project_name?: string
   assigned_by_name?: string
+  // Timesheet integration fields
+  is_timesheet_entry?: boolean
+  timesheet_entry_id?: string
+  hours_worked?: number
+  task_category?: string
+  billable?: boolean
 }
 
 export interface TaskStats {
@@ -45,43 +52,182 @@ export interface Project {
   end_date: string
 }
 
-// Get user tasks with optional status filter
+// Convert timesheet entry to task format
+function convertTimesheetEntryToTask(entry: TimesheetEntry, projectName?: string): Task {
+  return {
+    id: `timesheet_${entry.id}`,
+    title: `${entry.task_category || 'Work'} - ${projectName || 'Project'}`,
+    description: entry.description,
+    status: entry.status === 'approved' ? 'completed' : 
+            entry.status === 'submitted' ? 'in_progress' : 'pending',
+    priority: 'medium',
+    assigned_to: entry.user_id,
+    assigned_by: entry.user_id, // Self-assigned from timesheet
+    project_id: entry.project_id,
+    due_date: entry.date,
+    completed_at: entry.status === 'approved' ? entry.updated_at : null,
+    estimated_hours: null,
+    actual_hours: entry.hours_worked,
+    tags: entry.task_category ? [entry.task_category] : null,
+    created_at: entry.created_at,
+    updated_at: entry.updated_at,
+    project_name: projectName,
+    assigned_by_name: 'Self',
+    // Timesheet integration fields
+    is_timesheet_entry: true,
+    timesheet_entry_id: entry.id,
+    hours_worked: entry.hours_worked,
+    task_category: entry.task_category || undefined,
+    billable: entry.billable
+  }
+}
+
+// Get user tasks with optional status filter (includes timesheet entries)
 export async function getUserTasks(
   userId: string, 
   statusFilter?: string
 ): Promise<Task[]> {
   try {
-    const { data, error } = await supabase
+    // Get regular tasks
+    const { data: tasksData, error: tasksError } = await supabase
       .rpc('get_user_tasks', { 
         user_uuid: userId, 
         status_filter: statusFilter || null 
       })
 
-    if (error) {
-      console.error('Error fetching user tasks:', error)
-      return []
+    if (tasksError) {
+      console.error('Error fetching user tasks:', tasksError)
     }
 
-    return data || []
+    // Get timesheet entries
+    const { data: timesheetData, error: timesheetError } = await supabase
+      .from('timesheet_entries')
+      .select(`
+        *,
+        projects (
+          id,
+          name
+        )
+      `)
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+
+    if (timesheetError) {
+      console.error('Error fetching timesheet entries:', timesheetError)
+    }
+
+    // Convert timesheet entries to tasks
+    const timesheetTasks = (timesheetData || []).map(entry => 
+      convertTimesheetEntryToTask(entry, entry.projects?.name)
+    )
+
+    // Filter timesheet tasks by status if needed
+    let filteredTimesheetTasks = timesheetTasks
+    if (statusFilter && statusFilter !== 'all') {
+      filteredTimesheetTasks = timesheetTasks.filter(task => {
+        if (statusFilter === 'completed') return task.status === 'completed'
+        if (statusFilter === 'in_progress') return task.status === 'in_progress'
+        if (statusFilter === 'pending') return task.status === 'pending'
+        return true
+      })
+    }
+
+    // Combine regular tasks and timesheet tasks
+    const allTasks = [
+      ...(tasksData || []),
+      ...filteredTimesheetTasks
+    ]
+
+    // Sort by creation date (newest first)
+    return allTasks.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
   } catch (error) {
     console.error('Error in getUserTasks:', error)
     return []
   }
 }
 
-// Get task statistics for a user
+// Get task statistics for a user (includes timesheet entries)
 export async function getUserTaskStats(userId: string): Promise<TaskStats | null> {
   try {
-    const { data, error } = await supabase
+    // Get regular task stats
+    const { data: taskStats, error: taskError } = await supabase
       .rpc('get_user_task_stats', { user_uuid: userId })
       .single()
 
-    if (error) {
-      console.error('Error fetching task stats:', error)
-      return null
+    if (taskError) {
+      console.error('Error fetching task stats:', taskError)
     }
 
-    return data
+    // Get timesheet entries for stats
+    const { data: timesheetData, error: timesheetError } = await supabase
+      .from('timesheet_entries')
+      .select('status, created_at')
+      .eq('user_id', userId)
+
+    if (timesheetError) {
+      console.error('Error fetching timesheet stats:', timesheetError)
+    }
+
+    // Calculate timesheet stats
+    const timesheetStats = {
+      total_tasks: 0,
+      completed_tasks: 0,
+      pending_tasks: 0,
+      in_progress_tasks: 0,
+      overdue_tasks: 0,
+      completion_rate: 0
+    }
+
+    if (timesheetData) {
+      timesheetStats.total_tasks = timesheetData.length
+      timesheetStats.completed_tasks = timesheetData.filter(entry => entry.status === 'approved').length
+      timesheetStats.pending_tasks = timesheetData.filter(entry => entry.status === 'draft').length
+      timesheetStats.in_progress_tasks = timesheetData.filter(entry => entry.status === 'submitted').length
+      timesheetStats.completion_rate = timesheetStats.total_tasks > 0 
+        ? Math.round((timesheetStats.completed_tasks / timesheetStats.total_tasks) * 100) 
+        : 0
+    }
+
+    // Combine regular task stats with timesheet stats
+    const regularStats = taskStats || {
+      total_tasks: 0,
+      completed_tasks: 0,
+      pending_tasks: 0,
+      in_progress_tasks: 0,
+      overdue_tasks: 0,
+      completion_rate: 0
+    }
+
+    // Create proper type definitions to avoid using 'any'
+    const regularStatsTyped = regularStats as {
+      total_tasks: number;
+      completed_tasks: number;
+      pending_tasks: number;
+      in_progress_tasks: number;
+      overdue_tasks: number;
+    };
+    
+    const timesheetStatsTyped = timesheetStats as {
+      total_tasks: number;
+      completed_tasks: number;
+      pending_tasks: number;
+      in_progress_tasks: number;
+      overdue_tasks: number;
+    };
+
+    return {
+      total_tasks: regularStatsTyped.total_tasks + timesheetStatsTyped.total_tasks,
+      completed_tasks: regularStatsTyped.completed_tasks + timesheetStatsTyped.completed_tasks,
+      pending_tasks: regularStatsTyped.pending_tasks + timesheetStatsTyped.pending_tasks,
+      in_progress_tasks: regularStatsTyped.in_progress_tasks + timesheetStatsTyped.in_progress_tasks,
+      overdue_tasks: regularStatsTyped.overdue_tasks + timesheetStatsTyped.overdue_tasks,
+      completion_rate: regularStatsTyped.total_tasks + timesheetStatsTyped.total_tasks > 0
+        ? Math.round(((regularStatsTyped.completed_tasks + timesheetStatsTyped.completed_tasks) / 
+           (regularStatsTyped.total_tasks + timesheetStatsTyped.total_tasks)) * 100)
+        : 0
+    }
   } catch (error) {
     console.error('Error in getUserTaskStats:', error)
     return null
@@ -168,7 +314,7 @@ export async function updateTaskStatus(
       }
     }
 
-    return data
+    return data as TaskResponse
   } catch (error) {
     console.error('Error in updateTaskStatus:', error)
     return {

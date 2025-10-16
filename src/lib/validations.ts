@@ -76,10 +76,6 @@ export const timesheetEntrySchema = z.object({
   description: z.string()
     .min(10, "Description must be at least 10 characters")
     .max(500, "Description cannot exceed 500 characters"),
-  task_category: z.enum(["development", "testing", "meeting", "documentation", "design", "review", "other"], {
-    message: "Please select a task category",
-  }),
-  billable: z.boolean().default(true),
 })
 
 export const timesheetSubmissionSchema = z.object({

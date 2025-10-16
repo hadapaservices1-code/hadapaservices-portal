@@ -36,10 +36,13 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
     setError(null)
 
     try {
+      console.log("Attempting to sign up with:", data.email)
+      console.log("Password length:", data.password.length)
+      
       // First, create the user account
       const supabase = createClient()
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
+        email: data.email.trim().toLowerCase(),
         password: data.password,
         options: {
           data: {
@@ -68,7 +71,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
             .from("profiles")
             .insert({
               id: authData.user.id,
-              email: data.email,
+              email: data.email.trim().toLowerCase(),
               full_name: data.fullName,
               role: data.role,
               department: data.department || null,
@@ -98,7 +101,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
           }
         } else {
           // Email confirmation required
-          setError("Please check your email and click the confirmation link to complete your registration. Then you can log in.")
+          setError("Please check your email and click the confirmation link to complete your registration. Once confirmed, you can log in with your credentials.")
         }
       }
     } catch (err) {

@@ -83,7 +83,7 @@ export async function getCurrentTimeStatus(userId: string): Promise<TimeTracking
       }
     }
 
-    return data
+    return data as TimeTrackingStatus | null
   } catch (error) {
     console.error('Error in getCurrentTimeStatus:', error)
     // Return default status instead of null to prevent crashes

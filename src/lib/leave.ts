@@ -1,6 +1,9 @@
 import { supabase, supabaseAdmin } from './supabase'
 import type { LeaveType, LeaveRequest, LeaveBalance, LeaveComment } from './database.types'
 
+// Re-export types for use in components
+export type { LeaveBalance, LeaveComment, LeaveType }
+
 // Leave Types
 export interface LeaveTypeWithStats extends LeaveType {
   used_days?: number
@@ -91,23 +94,23 @@ export async function getEmployeeLeaveRequests(employeeId: string): Promise<Leav
     }
 
     return (fallbackData || []).map((request: Record<string, unknown>) => ({
-      id: request.id,
+      id: request.id as string,
       employee_id: employeeId,
-      manager_id: request.manager_id,
-      leave_type_id: request.leave_type_id,
-      start_date: request.start_date,
-      end_date: request.end_date,
-      total_days: request.total_days,
-      reason: request.reason,
+      manager_id: request.manager_id as string | null,
+      leave_type_id: request.leave_type_id as string,
+      start_date: request.start_date as string,
+      end_date: request.end_date as string,
+      total_days: request.total_days as number,
+      reason: request.reason as string,
       status: request.status as 'pending' | 'approved' | 'rejected' | 'cancelled',
-      manager_comment: request.manager_comment,
-      applied_at: request.applied_at,
-      reviewed_at: request.reviewed_at,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
-      leave_type_name: (request.leave_types as Record<string, unknown>)?.name || 'Unknown',
+      manager_comment: request.manager_comment as string | null,
+      applied_at: request.applied_at as string,
+      reviewed_at: request.reviewed_at as string | null,
+      created_at: request.created_at as string,
+      updated_at: request.updated_at as string,
+      leave_type_name: ((request.leave_types as Record<string, unknown>)?.name as string) || 'Unknown',
       employee_name: '',
-      manager_name: (request.profiles as Record<string, unknown>)?.full_name || ''
+      manager_name: ((request.profiles as Record<string, unknown>)?.full_name as string) || ''
     }))
   } catch (error) {
     console.error('Error in getEmployeeLeaveRequests:', error)
@@ -146,23 +149,23 @@ export async function getEmployeeLeaveHistory(employeeId: string): Promise<Leave
     }
 
     return (fallbackData || []).map((request: Record<string, unknown>) => ({
-      id: request.id,
+      id: request.id as string,
       employee_id: employeeId,
-      manager_id: request.manager_id,
-      leave_type_id: request.leave_type_id,
-      start_date: request.start_date,
-      end_date: request.end_date,
-      total_days: request.total_days,
-      reason: request.reason,
+      manager_id: request.manager_id as string | null,
+      leave_type_id: request.leave_type_id as string,
+      start_date: request.start_date as string,
+      end_date: request.end_date as string,
+      total_days: request.total_days as number,
+      reason: request.reason as string,
       status: request.status as 'pending' | 'approved' | 'rejected' | 'cancelled',
-      manager_comment: request.manager_comment,
-      applied_at: request.applied_at,
-      reviewed_at: request.reviewed_at,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
-      leave_type_name: (request.leave_types as Record<string, unknown>)?.name || 'Unknown',
+      manager_comment: request.manager_comment as string | null,
+      applied_at: request.applied_at as string,
+      reviewed_at: request.reviewed_at as string | null,
+      created_at: request.created_at as string,
+      updated_at: request.updated_at as string,
+      leave_type_name: ((request.leave_types as Record<string, unknown>)?.name as string) || 'Unknown',
       employee_name: '',
-      manager_name: (request.profiles as Record<string, unknown>)?.full_name || ''
+      manager_name: ((request.profiles as Record<string, unknown>)?.full_name as string) || ''
     }))
   } catch (error) {
     console.error('Error in getEmployeeLeaveHistory:', error)
@@ -203,22 +206,22 @@ export async function getManagerPendingRequests(managerId: string): Promise<Leav
     }
 
     return (fallbackData || []).map((request: Record<string, unknown>) => ({
-      id: request.id,
-      employee_id: request.employee_id,
+      id: request.id as string,
+      employee_id: request.employee_id as string,
       manager_id: managerId,
-      leave_type_id: request.leave_type_id,
-      start_date: request.start_date,
-      end_date: request.end_date,
-      total_days: request.total_days,
-      reason: request.reason,
+      leave_type_id: request.leave_type_id as string,
+      start_date: request.start_date as string,
+      end_date: request.end_date as string,
+      total_days: request.total_days as number,
+      reason: request.reason as string,
       status: 'pending' as const,
-      manager_comment: request.manager_comment,
-      applied_at: request.applied_at,
-      reviewed_at: request.reviewed_at,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
-      leave_type_name: (request.leave_types as Record<string, unknown>)?.name || 'Unknown',
-      employee_name: (request.profiles as Record<string, unknown>)?.full_name || 'Unknown',
+      manager_comment: request.manager_comment as string | null,
+      applied_at: request.applied_at as string,
+      reviewed_at: request.reviewed_at as string | null,
+      created_at: request.created_at as string,
+      updated_at: request.updated_at as string,
+      leave_type_name: ((request.leave_types as Record<string, unknown>)?.name as string) || 'Unknown',
+      employee_name: ((request.profiles as Record<string, unknown>)?.full_name as string) || 'Unknown',
       manager_name: ''
     }))
   } catch (error) {
@@ -260,22 +263,22 @@ export async function getManagerPendingRequestsServer(managerId: string): Promis
     }
 
     return (fallbackData || []).map((request: Record<string, unknown>) => ({
-      id: request.id,
-      employee_id: request.employee_id,
+      id: request.id as string,
+      employee_id: request.employee_id as string,
       manager_id: managerId,
-      leave_type_id: request.leave_type_id,
-      start_date: request.start_date,
-      end_date: request.end_date,
-      total_days: request.total_days,
-      reason: request.reason,
+      leave_type_id: request.leave_type_id as string,
+      start_date: request.start_date as string,
+      end_date: request.end_date as string,
+      total_days: request.total_days as number,
+      reason: request.reason as string,
       status: 'pending' as const,
-      manager_comment: request.manager_comment,
-      applied_at: request.applied_at,
-      reviewed_at: request.reviewed_at,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
-      leave_type_name: (request.leave_types as Record<string, unknown>)?.name || 'Unknown',
-      employee_name: (request.profiles as Record<string, unknown>)?.full_name || 'Unknown',
+      manager_comment: request.manager_comment as string | null,
+      applied_at: request.applied_at as string,
+      reviewed_at: request.reviewed_at as string | null,
+      created_at: request.created_at as string,
+      updated_at: request.updated_at as string,
+      leave_type_name: ((request.leave_types as Record<string, unknown>)?.name as string) || 'Unknown',
+      employee_name: ((request.profiles as Record<string, unknown>)?.full_name as string) || 'Unknown',
       manager_name: ''
     }))
   } catch (error) {
@@ -315,22 +318,22 @@ export async function getManagerLeaveHistory(managerId: string): Promise<LeaveRe
     }
 
     return (fallbackData || []).map((request: Record<string, unknown>) => ({
-      id: request.id,
-      employee_id: request.employee_id,
+      id: request.id as string,
+      employee_id: request.employee_id as string,
       manager_id: managerId,
-      leave_type_id: request.leave_type_id,
-      start_date: request.start_date,
-      end_date: request.end_date,
-      total_days: request.total_days,
-      reason: request.reason,
+      leave_type_id: request.leave_type_id as string,
+      start_date: request.start_date as string,
+      end_date: request.end_date as string,
+      total_days: request.total_days as number,
+      reason: request.reason as string,
       status: request.status as 'pending' | 'approved' | 'rejected' | 'cancelled',
-      manager_comment: request.manager_comment,
-      applied_at: request.applied_at,
-      reviewed_at: request.reviewed_at,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
-      leave_type_name: (request.leave_types as Record<string, unknown>)?.name || 'Unknown',
-      employee_name: (request.profiles as Record<string, unknown>)?.full_name || 'Unknown',
+      manager_comment: request.manager_comment as string | null,
+      applied_at: request.applied_at as string,
+      reviewed_at: request.reviewed_at as string | null,
+      created_at: request.created_at as string,
+      updated_at: request.updated_at as string,
+      leave_type_name: ((request.leave_types as Record<string, unknown>)?.name as string) || 'Unknown',
+      employee_name: ((request.profiles as Record<string, unknown>)?.full_name as string) || 'Unknown',
       manager_name: ''
     }))
   } catch (error) {

@@ -1,18 +1,10 @@
-import { supabase } from './supabase'
+import { createClient } from './supabase-client'
 import { TimesheetEntry, TimesheetSubmission } from './database.types'
+import { type Project } from './projects'
 
 // Re-export types for use in components
 export type { TimesheetEntry, TimesheetSubmission }
-
-export interface Project {
-  id: string
-  name: string
-  description: string
-  status: string
-  priority: string
-  start_date: string
-  end_date: string
-}
+export type { Project }
 
 export interface TimesheetSummary {
   project_id: string
@@ -31,15 +23,44 @@ export interface TimesheetResponse {
 // Get available projects for a user
 export async function getAvailableProjects(userId: string): Promise<Project[]> {
   try {
-    const { data, error } = await supabase
-      .rpc('get_available_projects_for_user', { user_uuid: userId })
-
-    if (error) {
-      console.error('Error fetching available projects:', error)
+    const supabase = createClient()
+    const today = new Date().toISOString().split('T')[0]
+    
+    // Get all projects with planning or in_progress status
+    const { data: allProjects, error: allError } = await supabase
+      .from('projects')
+      .select('*')
+      .in('status', ['planning', 'in_progress'])
+      .order('priority', { ascending: false })
+      .order('name', { ascending: true })
+    
+    if (allError) {
+      console.error('Error fetching projects:', allError)
       return []
     }
 
-    return data || []
+    // Apply lenient filtering - include projects that are:
+    // 1. Currently active (started and not ended), OR
+    // 2. Recently created (within last 90 days), OR
+    // 3. Have no start/end dates (always available)
+    const activeProjects = allProjects?.filter(project => {
+      const isStarted = !project.start_date || project.start_date <= today
+      const isNotEnded = !project.end_date || project.end_date >= today
+      const isActive = isStarted && isNotEnded
+      
+      // Include projects created in the last 90 days even if they have future start dates
+      const createdDate = new Date(project.created_at)
+      const ninetyDaysAgo = new Date()
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+      const isRecentlyCreated = createdDate >= ninetyDaysAgo
+      
+      // Include projects with no start/end dates (always available)
+      const hasNoDates = !project.start_date && !project.end_date
+      
+      return isActive || isRecentlyCreated || hasNoDates
+    }) || []
+    
+    return activeProjects
   } catch (error) {
     console.error('Error in getAvailableProjects:', error)
     return []
@@ -54,28 +75,154 @@ export async function createTimesheetEntry(
     date: string
     hours_worked: number
     description: string
-    task_category: string
-    billable: boolean
   }
-): Promise<TimesheetResponse> {
+): Promise<ApiResponse> {
+  console.log('=== createTimesheetEntry called ===')
+  console.log('Function parameters:', { userId, entryData })
+  
+  // Validate input parameters
+  if (!userId || typeof userId !== 'string') {
+    console.error('Invalid userId:', userId)
+    return { success: false, message: 'Invalid user ID', data: null }
+  }
+  
+  if (!entryData || typeof entryData !== 'object') {
+    console.error('Invalid entryData:', entryData)
+    return { success: false, message: 'Invalid entry data', data: null }
+  }
+  
+  if (!entryData.project_id || !entryData.date || !entryData.description) {
+    console.error('Missing required fields:', entryData)
+    return { success: false, message: 'Missing required fields', data: null }
+  }
+  
   try {
-    const { data, error } = await supabase
+    console.log('Creating timesheet entry with data:', {
+      userId,
+      entryData,
+      timestamp: new Date().toISOString()
+    })
+
+    const supabase = createClient()
+    console.log('Supabase client created:', !!supabase)
+    
+    // Check authentication status
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('Authentication check:', { 
+      user: user?.id, 
+      userEmail: user?.email,
+      authError: authError ? {
+        message: authError.message,
+        status: authError.status,
+        name: authError.name
+      } : null
+    })
+    
+    if (authError || !user) {
+      console.error('User not authenticated:', authError)
+      return { success: false, message: 'User not authenticated. Please log in again.', data: null }
+    }
+
+    if (user.id !== userId) {
+      console.error('User ID mismatch:', { authenticatedUserId: user.id, providedUserId: userId })
+      return { success: false, message: 'User ID mismatch. Please refresh and try again.', data: null }
+    }
+    
+    // Test Supabase connection first
+    const { data: connectionTest, error: connectionError } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1)
+    
+    if (connectionError) {
+      console.error('Supabase connection test failed:', connectionError)
+      return { success: false, message: `Database connection failed: ${connectionError.message}`, data: null }
+    }
+
+    console.log('Supabase connection test passed')
+
+    // Check if timesheet_entries table exists and is accessible
+    const { data: tableTest, error: tableError } = await supabase
       .from('timesheet_entries')
-      .insert({
+      .select('id')
+      .limit(1)
+
+    if (tableError) {
+      console.error('Timesheet entries table not accessible:', {
+        error: tableError,
+        message: tableError.message,
+        details: tableError.details,
+        hint: tableError.hint,
+        code: tableError.code
+      })
+      return { 
+        success: false, 
+        message: `Database table not accessible: ${tableError.message}`, 
+        data: null 
+      }
+    }
+
+    console.log('Timesheet entries table accessible')
+
+    // Check if project exists and user has access to it
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, name')
+      .eq('id', entryData.project_id)
+      .single()
+
+    if (projectError) {
+      console.error('Project not found or access denied:', {
+        error: projectError,
+        message: projectError.message,
+        details: projectError.details,
+        hint: projectError.hint,
+        code: projectError.code
+      })
+      return { 
+        success: false, 
+        message: `Project not found or access denied: ${projectError.message || 'Project does not exist'}`, 
+        data: null 
+      }
+    }
+
+    if (!project) {
+      console.error('Project not found: project is null or undefined')
+      return { 
+        success: false, 
+        message: 'Project not found or access denied', 
+        data: null 
+      }
+    }
+
+    console.log('Project access verified:', project)
+
+    const insertData = {
         user_id: userId,
         project_id: entryData.project_id,
         date: entryData.date,
         hours_worked: entryData.hours_worked,
         description: entryData.description,
-        task_category: entryData.task_category,
-        billable: entryData.billable,
-        status: 'draft'
-      })
+    }
+
+    console.log('Inserting timesheet entry:', insertData)
+
+    const { data, error } = await supabase
+      .from('timesheet_entries')
+      .insert(insertData)
       .select()
       .single()
 
+    console.log('Supabase insert result:', { data, error })
+
     if (error) {
-      console.error('Error creating timesheet entry:', error)
+      console.error('Error creating timesheet entry:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       return {
         success: false,
         message: error.message || 'Failed to create timesheet entry',
@@ -83,16 +230,30 @@ export async function createTimesheetEntry(
       }
     }
 
-    return {
-      success: true,
-      message: 'Timesheet entry created successfully',
-      data
-    }
+    console.log('Timesheet entry created successfully:', data)
+    return { success: true, message: 'Timesheet entry added successfully!', data: data }
   } catch (error) {
-    console.error('Error in createTimesheetEntry:', error)
+    console.error('Error in createTimesheetEntry:', {
+      error,
+      errorType: typeof error,
+      errorConstructor: error?.constructor?.name,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      stringified: JSON.stringify(error, null, 2)
+    })
+    
+    let errorMessage = 'An unexpected error occurred.'
+    if (error instanceof Error) {
+      errorMessage = error.message
+    } else if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String(error.message)
+    } else if (error && typeof error === 'string') {
+      errorMessage = error
+    }
+    
     return {
       success: false,
-      message: 'An unexpected error occurred',
+      message: errorMessage, 
       data: null
     }
   }
@@ -112,6 +273,7 @@ export async function updateTimesheetEntry(
   }
 ): Promise<TimesheetResponse> {
   try {
+    const supabase = createClient()
     const { data, error } = await supabase
       .from('timesheet_entries')
       .update(entryData)
@@ -148,6 +310,7 @@ export async function updateTimesheetEntry(
 // Delete a timesheet entry
 export async function deleteTimesheetEntry(entryId: string, userId: string): Promise<TimesheetResponse> {
   try {
+    const supabase = createClient()
     const { error } = await supabase
       .from('timesheet_entries')
       .delete()
@@ -186,6 +349,7 @@ export async function getTimesheetEntries(
   endDate?: string
 ): Promise<TimesheetEntry[]> {
   try {
+    const supabase = createClient()
     let query = supabase
       .from('timesheet_entries')
       .select(`
@@ -229,6 +393,7 @@ export async function getTimesheetSummary(
   endDate: string
 ): Promise<TimesheetSummary[]> {
   try {
+    const supabase = createClient()
     const { data, error } = await supabase
       .rpc('get_timesheet_summary', {
         user_uuid: userId,
@@ -255,6 +420,7 @@ export async function submitTimesheet(
   notes?: string
 ): Promise<TimesheetResponse> {
   try {
+    const supabase = createClient()
     const { data, error } = await supabase
       .rpc('submit_timesheet', {
         user_uuid: userId,
@@ -286,6 +452,7 @@ export async function submitTimesheet(
 // Get timesheet submissions for a user
 export async function getTimesheetSubmissions(userId: string): Promise<TimesheetSubmission[]> {
   try {
+    const supabase = createClient()
     const { data, error } = await supabase
       .from('timesheet_submissions')
       .select('*')
@@ -310,6 +477,7 @@ export async function approveTimesheet(
   approverId: string
 ): Promise<TimesheetResponse> {
   try {
+    const supabase = createClient()
     const { data, error } = await supabase
       .rpc('approve_timesheet', {
         submission_id: submissionId,
@@ -370,6 +538,7 @@ export async function getCurrentWeekTotalHours(userId: string): Promise<number> 
 // Check if user has submitted timesheet for current week
 export async function hasSubmittedCurrentWeek(userId: string): Promise<boolean> {
   try {
+    const supabase = createClient()
     const today = new Date()
     const startOfWeek = new Date(today)
     startOfWeek.setDate(today.getDate() - today.getDay())

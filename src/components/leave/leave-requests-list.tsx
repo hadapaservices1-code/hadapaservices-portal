@@ -49,7 +49,7 @@ export function LeaveRequestsList({ employeeId, onRefresh }: LeaveRequestsListPr
 
   const handleCancelRequest = async (requestId: string) => {
     try {
-      const result = await cancelLeaveRequest(requestId, employeeId)
+      const result = await cancelLeaveRequest(requestId)
       if (result.success) {
         toast.success('Leave request cancelled successfully')
         fetchRequests()

@@ -12,9 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Users,
-  Sparkles,
-  TrendingUp,
-  Zap
+  Sparkles
 } from "lucide-react"
 import { TimeTrackingCard } from "./time-tracking-card"
 import { TimesheetCard } from "./timesheet-card"
@@ -67,7 +65,7 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
     },
     { 
       title: "Hours Worked", 
-      value: "40.5", 
+      value: taskStats?.total_tasks ? `${taskStats.total_tasks * 8}` : "0", 
       change: "This week", 
       icon: Clock, 
       color: "text-blue-600" 
@@ -281,9 +279,18 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
                 </div>
               ) : (
                 recentTasks.map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg ${
+                    task.is_timesheet_entry ? 'bg-blue-50 border-l-4 border-l-blue-500' : 'bg-gray-50'
+                  }`}>
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{task.title}</h4>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="font-medium text-gray-900">{task.title}</h4>
+                        {task.is_timesheet_entry && (
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                            Timesheet
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-4 mt-1">
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           task.status === 'completed' 
@@ -303,11 +310,16 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
                         }`}>
                           {task.priority}
                         </span>
+                        {task.is_timesheet_entry && task.hours_worked && (
+                          <span className="text-xs text-blue-600 font-medium">
+                            {task.hours_worked}h worked
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500">
-                        Due: {task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', {
+                        {task.is_timesheet_entry ? 'Date: ' : 'Due: '}{task.due_date ? new Date(task.due_date).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
                           day: 'numeric'

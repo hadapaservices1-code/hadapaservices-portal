@@ -101,7 +101,8 @@ export function LeaveBalanceCard({ employeeId, year }: LeaveBalanceCardProps) {
               {balances.map((balance) => (
                 <div key={balance.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-sm">{(balance as Record<string, unknown>).leave_types?.name || 'Leave Type'}</h3>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    <h3 className="font-medium text-sm">{(balance as any).leave_types?.name || 'Leave Type'}</h3>
                     <Badge variant="outline" className="text-xs">
                       {balance.remaining_days} remaining
                     </Badge>

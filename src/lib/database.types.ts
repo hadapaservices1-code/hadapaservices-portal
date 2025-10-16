@@ -473,8 +473,53 @@ export type TimesheetSubmission = Database['public']['Tables']['timesheet_submis
 export type Task = Database['public']['Tables']['tasks']['Row']
 export type TaskComment = Database['public']['Tables']['task_comments']['Row']
 export type TaskAttachment = Database['public']['Tables']['task_attachments']['Row']
-export type LeaveType = Database['public']['Tables']['leave_types']['Row']
-export type LeaveRequest = Database['public']['Tables']['leave_requests']['Row']
-export type LeaveBalance = Database['public']['Tables']['leave_balances']['Row']
-export type LeaveComment = Database['public']['Tables']['leave_comments']['Row']
+// Temporary interfaces until database types are updated
+export interface LeaveType {
+  id: string
+  name: string
+  description: string
+  max_days_per_year: number
+  requires_approval: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Temporary interfaces until database types are updated
+export interface LeaveRequest {
+  id: string
+  employee_id: string
+  manager_id: string | null
+  leave_type_id: string
+  start_date: string
+  end_date: string
+  total_days: number
+  reason: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  manager_comment: string | null
+  applied_at: string
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveBalance {
+  id: string
+  employee_id: string
+  leave_type_id: string
+  total_days: number
+  used_days: number
+  remaining_days: number
+  year: number
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveComment {
+  id: string
+  leave_request_id: string
+  user_id: string
+  comment: string
+  created_at: string
+  updated_at: string
+}
 export type UserRole = Database['public']['Enums']['user_role']

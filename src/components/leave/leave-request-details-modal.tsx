@@ -241,7 +241,7 @@ export function LeaveRequestDetailsModal({
                 comments.map((comment) => (
                   <div key={comment.id} className="border rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{(comment as any).profiles?.full_name || 'Unknown User'}</span>
+                      <span className="text-sm font-medium">{(comment as { profiles?: { full_name?: string } }).profiles?.full_name || 'Unknown User'}</span>
                       <span className="text-xs text-gray-500">
                         {formatDateTime(comment.created_at)}
                       </span>
