@@ -11,6 +11,7 @@ import { ViewActivitiesModal } from "./view-activities-modal"
 import { ManagerLeaveSummary } from "./manager-leave-summary"
 import { TeamActivitySummary } from "./team-activity-summary"
 import { ManagerTimeTrackingSummary } from "./manager-time-tracking-summary"
+import { ExpenseSummaryCard } from "@/components/expense/expense-summary-card"
 import { 
   Users, 
   TrendingUp, 
@@ -213,6 +214,15 @@ export function ManagerDashboard({ userName, userDepartment, userId }: ManagerDa
             // This will be handled by navigation to the time tracking page
             window.location.href = '/dashboard/time-tracking'
           }}
+        />
+      )}
+
+      {/* Expense Management Summary */}
+      {userId && (
+        <ExpenseSummaryCard
+          userId={userId}
+          userRole="manager"
+          onViewExpenses={() => window.location.href = '/dashboard/expenses'}
         />
       )}
 

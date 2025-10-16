@@ -17,6 +17,7 @@ import {
   Trash2,
   Eye
 } from "lucide-react"
+import { BackButton } from "@/components/ui/back-button"
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -190,14 +191,21 @@ export default function ProjectsPage() {
           transition={{ duration: 0.5 }}
           className="flex items-center justify-between"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
-              <FolderOpen className="h-8 w-8 text-primary" />
-              <span>Projects</span>
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Manage your team's projects and track progress
-            </p>
+          <div className="flex items-center space-x-4">
+            <BackButton 
+              variant="outline" 
+              size="sm"
+              className="flex-shrink-0"
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center space-x-3">
+                <FolderOpen className="h-8 w-8 text-primary" />
+                <span>Projects</span>
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Manage your team's projects and track progress
+              </p>
+            </div>
           </div>
           <CreateProjectModal onProjectCreated={handleProjectCreated} />
         </motion.div>

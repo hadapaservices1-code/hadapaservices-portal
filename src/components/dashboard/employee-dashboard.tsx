@@ -17,6 +17,7 @@ import {
 import { TimeTrackingCard } from "./time-tracking-card"
 import { TimesheetCard } from "./timesheet-card"
 import { LeaveSummaryCard } from "./leave-summary-card"
+import { ExpenseSummaryCard } from "@/components/expense/expense-summary-card"
 import { getUserTasks, getUserTaskStats, type Task, type TaskStats } from "@/lib/tasks"
 import Link from "next/link"
 
@@ -194,6 +195,15 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
       {/* Leave Summary Card */}
       {userId && (
         <LeaveSummaryCard employeeId={userId} userRole="employee" />
+      )}
+
+      {/* Expense Summary Card */}
+      {userId && (
+        <ExpenseSummaryCard 
+          userId={userId} 
+          userRole="employee"
+          onViewExpenses={() => window.location.href = '/dashboard/expenses'}
+        />
       )}
 
       {/* Stats Grid */}

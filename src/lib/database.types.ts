@@ -459,6 +459,120 @@ export interface Database {
         created_at?: string
       }
     }
+    expense_categories: {
+      Row: {
+        id: string
+        name: string
+        description: string | null
+        max_amount: number | null
+        requires_receipt: boolean
+        is_active: boolean
+        created_at: string
+        updated_at: string
+      }
+      Insert: {
+        id?: string
+        name: string
+        description?: string | null
+        max_amount?: number | null
+        requires_receipt?: boolean
+        is_active?: boolean
+        created_at?: string
+        updated_at?: string
+      }
+      Update: {
+        id?: string
+        name?: string
+        description?: string | null
+        max_amount?: number | null
+        requires_receipt?: boolean
+        is_active?: boolean
+        created_at?: string
+        updated_at?: string
+      }
+    }
+    expenses: {
+      Row: {
+        id: string
+        employee_id: string
+        manager_id: string | null
+        category_id: string
+        title: string
+        description: string
+        amount: number
+        currency: string
+        expense_date: string
+        receipt_url: string | null
+        status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+        manager_comment: string | null
+        submitted_at: string
+        reviewed_at: string | null
+        created_at: string
+        updated_at: string
+      }
+      Insert: {
+        id?: string
+        employee_id: string
+        manager_id?: string | null
+        category_id: string
+        title: string
+        description: string
+        amount: number
+        currency?: string
+        expense_date: string
+        receipt_url?: string | null
+        status?: 'pending' | 'approved' | 'rejected' | 'cancelled'
+        manager_comment?: string | null
+        submitted_at?: string
+        reviewed_at?: string | null
+        created_at?: string
+        updated_at?: string
+      }
+      Update: {
+        id?: string
+        employee_id?: string
+        manager_id?: string | null
+        category_id?: string
+        title?: string
+        description?: string
+        amount?: number
+        currency?: string
+        expense_date?: string
+        receipt_url?: string | null
+        status?: 'pending' | 'approved' | 'rejected' | 'cancelled'
+        manager_comment?: string | null
+        submitted_at?: string
+        reviewed_at?: string | null
+        created_at?: string
+        updated_at?: string
+      }
+    }
+    expense_comments: {
+      Row: {
+        id: string
+        expense_id: string
+        user_id: string
+        comment: string
+        is_internal: boolean
+        created_at: string
+      }
+      Insert: {
+        id?: string
+        expense_id: string
+        user_id: string
+        comment: string
+        is_internal?: boolean
+        created_at?: string
+      }
+      Update: {
+        id?: string
+        expense_id?: string
+        user_id?: string
+        comment?: string
+        is_internal?: boolean
+        created_at?: string
+      }
+    }
     Enums: {
       user_role: 'employee' | 'manager' | 'admin'
     }
@@ -523,3 +637,49 @@ export interface LeaveComment {
   updated_at: string
 }
 export type UserRole = Database['public']['Enums']['user_role']
+
+// Expense Management Types
+// Temporarily comment out until database types are properly generated
+// export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row']
+// export type Expense = Database['public']['Tables']['expenses']['Row']
+// export type ExpenseComment = Database['public']['Tables']['expense_comments']['Row']
+
+// Temporary type definitions
+export interface ExpenseCategory {
+  id: string
+  name: string
+  description: string | null
+  max_amount: number | null
+  requires_receipt: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Expense {
+  id: string
+  employee_id: string
+  manager_id: string | null
+  category_id: string
+  title: string
+  description: string
+  amount: number
+  currency: string
+  expense_date: string
+  receipt_url: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  manager_comment: string | null
+  submitted_at: string
+  reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExpenseComment {
+  id: string
+  expense_id: string
+  user_id: string
+  comment: string
+  is_internal: boolean
+  created_at: string
+}

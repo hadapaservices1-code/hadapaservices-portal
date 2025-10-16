@@ -21,7 +21,8 @@ import {
   Activity,
   Clock,
   Sparkles,
-  FolderOpen
+  FolderOpen,
+  Receipt
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
@@ -34,6 +35,7 @@ interface SidebarProps {
 const employeeNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "My Tasks", href: "/dashboard/tasks", icon: FileText },
+  { name: "Expenses", href: "/dashboard/expenses", icon: Receipt },
   { name: "Leave", href: "/dashboard/leave", icon: Plane },
   { name: "Schedule", href: "/dashboard/schedule", icon: Calendar },
   { name: "Profile", href: "/dashboard/profile", icon: Settings },
@@ -45,6 +47,7 @@ const managerNavItems = [
   { name: "Projects", href: "/dashboard/projects", icon: FolderOpen },
   { name: "Team Activity", href: "/dashboard/team-activity", icon: Activity },
   { name: "Time Tracking", href: "/dashboard/time-tracking", icon: Clock },
+  { name: "Expenses", href: "/dashboard/expenses", icon: Receipt },
   { name: "Leave", href: "/dashboard/leave", icon: Plane },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Tasks", href: "/dashboard/tasks", icon: FileText },

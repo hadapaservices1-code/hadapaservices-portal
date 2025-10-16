@@ -158,3 +158,30 @@ export const leaveCommentSchema = z.object({
 export type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>
 export type LeaveApprovalFormData = z.infer<typeof leaveApprovalSchema>
 export type LeaveCommentFormData = z.infer<typeof leaveCommentSchema>
+
+// Expense Management Schemas
+export const expenseSubmissionSchema = z.object({
+  categoryId: z.string().min(1, "Please select a category"),
+  title: z.string().min(2, "Title must be at least 2 characters").max(100, "Title must be less than 100 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters").max(500, "Description must be less than 500 characters"),
+  amount: z.number().min(0.01, "Amount must be greater than 0").max(999999.99, "Amount is too large"),
+  currency: z.string().min(1, "Currency is required"),
+  expenseDate: z.string().min(1, "Expense date is required"),
+  receiptUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+})
+
+export const expenseApprovalSchema = z.object({
+  status: z.enum(["approved", "rejected"], {
+    message: "Please select approval status",
+  }),
+  comment: z.string().max(500, "Comment must be less than 500 characters").optional(),
+})
+
+export const expenseCommentSchema = z.object({
+  comment: z.string().min(1, "Comment is required").max(500, "Comment must be less than 500 characters"),
+  isInternal: z.boolean().optional().default(false),
+})
+
+export type ExpenseSubmissionFormData = z.infer<typeof expenseSubmissionSchema>
+export type ExpenseApprovalFormData = z.infer<typeof expenseApprovalSchema>
+export type ExpenseCommentFormData = z.infer<typeof expenseCommentSchema>
