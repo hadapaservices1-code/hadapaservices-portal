@@ -76,7 +76,7 @@ export async function createTimesheetEntry(
     hours_worked: number
     description: string
   }
-): Promise<ApiResponse> {
+): Promise<TimesheetResponse> {
   console.log('=== createTimesheetEntry called ===')
   console.log('Function parameters:', { userId, entryData })
   
@@ -197,6 +197,35 @@ export async function createTimesheetEntry(
 
     console.log('Project access verified:', project)
 
+    // Check if an entry already exists for this user, project, and date (prevent duplicate)
+    const { data: existingEntry, error: checkError } = await supabase
+      .from('timesheet_entries')
+      .select('id, status, hours_worked, description')
+      .eq('user_id', userId)
+      .eq('project_id', entryData.project_id)
+      .eq('date', entryData.date)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Error checking existing entry:', checkError)
+      return {
+        success: false,
+        message: 'Failed to verify existing entries. Please try again.',
+        data: null
+      }
+    }
+
+    // If entry exists, return a user-friendly message instead of attempting insert
+    if (existingEntry) {
+      const entryStatus = existingEntry.status || 'unknown'
+      const entryHours = existingEntry.hours_worked || 0
+      return {
+        success: false,
+        message: `An entry already exists for this project on ${entryData.date} (${entryHours} hours, status: ${entryStatus}). Please use a different date or update the existing entry.`,
+        data: null
+      }
+    }
+
     const insertData = {
         user_id: userId,
         project_id: entryData.project_id,
@@ -213,19 +242,103 @@ export async function createTimesheetEntry(
       .select()
       .single()
 
-    console.log('Supabase insert result:', { data, error })
+    console.log('Supabase insert result:', { data, error: error ? 'Error occurred' : 'Success' })
 
     if (error) {
-      console.error('Error creating timesheet entry:', {
-        error,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      // Extract error details - use multiple methods to capture all properties
+      // Supabase errors can have getters and non-enumerable properties
+      const extractErrorDetails = (err: any): Record<string, any> => {
+        const details: Record<string, any> = {}
+        
+        // Extract known properties
+        if (err !== null && typeof err === 'object') {
+          // Try direct property access
+          const knownProps = ['message', 'details', 'hint', 'code', 'statusCode', 'status', 'name']
+          knownProps.forEach(prop => {
+            try {
+              const value = err[prop]
+              if (value !== undefined && value !== null) {
+                details[prop] = value
+              }
+            } catch (e) {
+              // Property might not be accessible
+            }
+          })
+          
+          // Try to get all enumerable keys
+          try {
+            Object.keys(err).forEach(key => {
+              if (!details[key]) {
+                details[key] = err[key]
+              }
+            })
+          } catch (e) {
+            // Might fail for certain error types
+          }
+          
+          // Try JSON.stringify with replacer for getters
+          try {
+            const jsonStr = JSON.stringify(err, (key, value) => {
+              if (key === 'stack' || key === 'stackTrace') return undefined
+              return value
+            }, 2)
+            if (jsonStr !== '{}' && jsonStr !== 'null') {
+              details._json = JSON.parse(jsonStr)
+            }
+          } catch (e) {
+            // JSON.stringify might fail
+          }
+          
+          // Fallback: try toString
+          try {
+            details._toString = err.toString()
+          } catch (e) {
+            // toString might fail
+          }
+        }
+        
+        return details
+      }
+      
+      const errorDetails = extractErrorDetails(error)
+      
+      // Log error with multiple formats for debugging
+      console.error('Error creating timesheet entry - Details:', errorDetails)
+      console.error('Error creating timesheet entry - Raw:', error)
+      console.error('Error creating timesheet entry - String:', String(error))
+      console.error('Error creating timesheet entry - Code:', error?.code)
+      console.error('Error creating timesheet entry - Message:', error?.message)
+      console.error('Error creating timesheet entry - Details property:', error?.details)
+      
+      // Determine the most helpful error message
+      let errorMessage = 'Failed to create timesheet entry'
+      
+      // Check error code first (most reliable)
+      if (error.code === '23505' || error.code?.includes('23505')) {
+        errorMessage = 'An entry already exists for this project on this date. Please use a different date or update the existing entry.'
+      } else if (error.code === '23503' || error.code?.includes('23503')) {
+        errorMessage = 'Project not found or you do not have access to it.'
+      } else if (error.code === '42501' || error.code?.includes('42501')) {
+        errorMessage = 'Permission denied. Please ensure you have access to this project and can create timesheet entries.'
+      } else if (error.message) {
+        // Check message content for keywords
+        const msg = String(error.message).toLowerCase()
+        if (msg.includes('duplicate') || msg.includes('unique constraint') || msg.includes('already exists')) {
+          errorMessage = 'An entry already exists for this project on this date. Please use a different date or update the existing entry.'
+        } else if (msg.includes('foreign key') || msg.includes('project')) {
+          errorMessage = 'Project not found or you do not have access to it.'
+        } else if (msg.includes('permission') || msg.includes('rls') || msg.includes('denied')) {
+          errorMessage = 'Permission denied. Please ensure you have access to this project and can create timesheet entries.'
+        } else {
+          errorMessage = error.message
+        }
+      } else if (errorDetails.message) {
+        errorMessage = errorDetails.message
+      }
+      
       return {
         success: false,
-        message: error.message || 'Failed to create timesheet entry',
+        message: errorMessage,
         data: null
       }
     }

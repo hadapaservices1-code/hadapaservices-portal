@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { CreateProjectModal } from "@/components/dashboard/create-project-modal"
 import { EditProjectModal } from "@/components/dashboard/edit-project-modal"
-import { ProjectDetailsModal } from "@/components/dashboard/project-details-modal"
+import { ProjectDetailsEnhancedModal } from "@/components/dashboard/project-details-enhanced-modal"
 import { 
   getManagerProjects, 
   getProjectStats, 
@@ -306,7 +306,11 @@ export default function ProjectsPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => {
+                        setSelectedProject(project)
+                        setIsDetailsModalOpen(true)
+                      }}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -337,13 +341,18 @@ export default function ProjectsPage() {
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 setSelectedProject(project)
                                 setIsDetailsModalOpen(true)
                               }}
@@ -352,7 +361,8 @@ export default function ProjectsPage() {
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation()
                                 setSelectedProject(project)
                                 setIsEditModalOpen(true)
                               }}
@@ -361,7 +371,10 @@ export default function ProjectsPage() {
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDeleteProject(project.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDeleteProject(project.id)
+                              }}
                               className="text-red-600"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -390,13 +403,15 @@ export default function ProjectsPage() {
               }}
               onProjectUpdated={handleProjectUpdated}
             />
-            <ProjectDetailsModal
+            <ProjectDetailsEnhancedModal
               project={selectedProject}
+              managerId={profile.id}
               isOpen={isDetailsModalOpen}
               onClose={() => {
                 setIsDetailsModalOpen(false)
                 setSelectedProject(null)
               }}
+              onUpdate={fetchProjects}
             />
           </>
         )}

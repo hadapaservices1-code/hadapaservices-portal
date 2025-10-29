@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { 
   Calendar, 
   Clock, 
@@ -12,13 +13,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Users,
-  Sparkles
+  Sparkles,
+  FolderOpen
 } from "lucide-react"
 import { TimeTrackingCard } from "./time-tracking-card"
 import { TimesheetCard } from "./timesheet-card"
 import { LeaveSummaryCard } from "./leave-summary-card"
 import { ExpenseSummaryCard } from "@/components/expense/expense-summary-card"
 import { getUserTasks, getUserTaskStats, type Task, type TaskStats } from "@/lib/tasks"
+import { getUserAssignedProjects, type Project } from "@/lib/projects"
 import Link from "next/link"
 
 interface EmployeeDashboardProps {
@@ -30,6 +33,7 @@ interface EmployeeDashboardProps {
 export function EmployeeDashboard({ userName, userDepartment, userId }: EmployeeDashboardProps) {
   const [recentTasks, setRecentTasks] = useState<Task[]>([])
   const [taskStats, setTaskStats] = useState<TaskStats | null>(null)
+  const [assignedProjects, setAssignedProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch tasks and stats
@@ -39,12 +43,14 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
       
       try {
         setIsLoading(true)
-        const [tasksData, statsData] = await Promise.all([
+        const [tasksData, statsData, projectsData] = await Promise.all([
           getUserTasks(userId),
-          getUserTaskStats(userId)
+          getUserTaskStats(userId),
+          getUserAssignedProjects(userId)
         ])
         setRecentTasks(tasksData.slice(0, 3)) // Show only recent 3 tasks
         setTaskStats(statsData)
+        setAssignedProjects(projectsData)
       } catch (error) {
         console.error('Error fetching tasks:', error)
       } finally {
@@ -345,6 +351,66 @@ export function EmployeeDashboard({ userName, userDepartment, userId }: Employee
                 View All Tasks
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        {/* Assigned Projects */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FolderOpen className="h-5 w-5" />
+              <span>My Projects</span>
+            </CardTitle>
+            <CardDescription>Projects you're assigned to</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-500">Loading projects...</p>
+                </div>
+              ) : assignedProjects.length === 0 ? (
+                <div className="text-center py-4">
+                  <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">No projects assigned yet</p>
+                </div>
+              ) : (
+                assignedProjects.slice(0, 3).map((project) => (
+                  <div
+                    key={project.id}
+                    className="p-3 border rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{project.name}</h4>
+                        <p className="text-sm text-gray-600 line-clamp-1">{project.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3 mt-2">
+                      <Badge 
+                        className={
+                          project.status === 'in_progress' ? 'bg-green-100 text-green-800' :
+                          project.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                          project.status === 'on_hold' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
+                        }
+                      >
+                        {project.status.replace('_', ' ')}
+                      </Badge>
+                      <span className="text-xs text-gray-500">
+                        {project.priority} priority
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            {assignedProjects.length > 3 && (
+              <Button className="w-full mt-4" variant="outline">
+                View All Projects ({assignedProjects.length})
+              </Button>
+            )}
           </CardContent>
         </Card>
 

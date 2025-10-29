@@ -107,15 +107,76 @@ export async function clockIn(userId: string, notes?: string): Promise<ClockInOu
       .single()
 
     if (error) {
-      console.error('Error clocking in:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      // Extract error details properly - Supabase errors may have non-enumerable properties
+      const extractErrorDetails = (err: any): Record<string, any> => {
+        const details: Record<string, any> = {}
+        
+        if (err !== null && typeof err === 'object') {
+          const knownProps = ['message', 'details', 'hint', 'code', 'statusCode', 'status', 'name']
+          knownProps.forEach(prop => {
+            try {
+              const value = err[prop]
+              if (value !== undefined && value !== null) {
+                details[prop] = value
+              }
+            } catch (e) {
+              // Property might not be accessible
+            }
+          })
+          
+          try {
+            Object.keys(err).forEach(key => {
+              if (!details[key]) {
+                details[key] = err[key]
+              }
+            })
+          } catch (e) {
+            // Might fail for certain error types
+          }
+          
+          try {
+            const jsonStr = JSON.stringify(err, (key, value) => {
+              if (key === 'stack' || key === 'stackTrace') return undefined
+              return value
+            }, 2)
+            if (jsonStr !== '{}' && jsonStr !== 'null') {
+              details._json = JSON.parse(jsonStr)
+            }
+          } catch (e) {
+            // JSON.stringify might fail
+          }
+          
+          try {
+            details._toString = err.toString()
+          } catch (e) {
+            // toString might fail
+          }
+        }
+        
+        return details
+      }
+      
+      const errorDetails = extractErrorDetails(error)
+      
+      // Log error with multiple formats for debugging
+      console.error('Error clocking in - Details:', errorDetails)
+      console.error('Error clocking in - Raw:', error)
+      console.error('Error clocking in - Code:', error?.code)
+      console.error('Error clocking in - Message:', error?.message)
+      
+      // Determine the most helpful error message
+      let errorMessage = error.message || errorDetails.message || 'Failed to clock in'
+      
+      // Provide more specific error messages based on error code
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+        errorMessage = 'Permission denied. Please ensure you have access to clock in.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       return {
         success: false,
-        message: error.message || 'Failed to clock in',
+        message: errorMessage,
         data: null
       }
     }
@@ -141,20 +202,82 @@ export async function clockOut(userId: string, notes?: string): Promise<ClockInO
     const { data, error } = await supabase
       .rpc('clock_out', { 
         user_uuid: userId, 
-        notes_text: notes || null 
+        notes_text: notes || null,
+        skip_timesheet: false  // Explicitly pass to disambiguate between function overloads
       })
       .single()
 
     if (error) {
-      console.error('Error clocking out:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      })
+      // Extract error details properly - Supabase errors may have non-enumerable properties
+      const extractErrorDetails = (err: any): Record<string, any> => {
+        const details: Record<string, any> = {}
+        
+        if (err !== null && typeof err === 'object') {
+          const knownProps = ['message', 'details', 'hint', 'code', 'statusCode', 'status', 'name']
+          knownProps.forEach(prop => {
+            try {
+              const value = err[prop]
+              if (value !== undefined && value !== null) {
+                details[prop] = value
+              }
+            } catch (e) {
+              // Property might not be accessible
+            }
+          })
+          
+          try {
+            Object.keys(err).forEach(key => {
+              if (!details[key]) {
+                details[key] = err[key]
+              }
+            })
+          } catch (e) {
+            // Might fail for certain error types
+          }
+          
+          try {
+            const jsonStr = JSON.stringify(err, (key, value) => {
+              if (key === 'stack' || key === 'stackTrace') return undefined
+              return value
+            }, 2)
+            if (jsonStr !== '{}' && jsonStr !== 'null') {
+              details._json = JSON.parse(jsonStr)
+            }
+          } catch (e) {
+            // JSON.stringify might fail
+          }
+          
+          try {
+            details._toString = err.toString()
+          } catch (e) {
+            // toString might fail
+          }
+        }
+        
+        return details
+      }
+      
+      const errorDetails = extractErrorDetails(error)
+      
+      // Log error with multiple formats for debugging
+      console.error('Error clocking out - Details:', errorDetails)
+      console.error('Error clocking out - Raw:', error)
+      console.error('Error clocking out - Code:', error?.code)
+      console.error('Error clocking out - Message:', error?.message)
+      
+      // Determine the most helpful error message
+      let errorMessage = error.message || errorDetails.message || 'Failed to clock out'
+      
+      // Provide more specific error messages based on error code
+      if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+        errorMessage = 'Permission denied. Please ensure you have access to clock out.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       return {
         success: false,
-        message: error.message || 'Failed to clock out',
+        message: errorMessage,
         data: null
       }
     }

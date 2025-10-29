@@ -34,6 +34,7 @@ interface SidebarProps {
 
 const employeeNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "My Projects", href: "/dashboard/my-projects", icon: FolderOpen },
   { name: "My Tasks", href: "/dashboard/tasks", icon: FileText },
   { name: "Expenses", href: "/dashboard/expenses", icon: Receipt },
   { name: "Leave", href: "/dashboard/leave", icon: Plane },
