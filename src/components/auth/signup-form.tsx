@@ -39,8 +39,18 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       console.log("Attempting to sign up with:", data.email)
       console.log("Password length:", data.password.length)
       
-      // First, create the user account
+      // Ensure no old session persists (sign out if any session exists)
       const supabase = createClient()
+      const { data: { session: existingSession } } = await supabase.auth.getSession()
+      if (existingSession) {
+        try {
+          await supabase.auth.signOut()
+        } catch (e) {
+          // Non-fatal; continue
+        }
+      }
+
+      // Create the user account
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email.trim().toLowerCase(),
         password: data.password,
@@ -64,9 +74,8 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
       if (authData.user) {
         console.log("User created successfully:", authData.user.id)
         
-        // Check if email confirmation is required
+        // If immediate confirmation (rare), create profile; else prompt email confirmation
         if (authData.user.email_confirmed_at) {
-          // User is immediately confirmed, create profile and log in
           const { error: profileError } = await supabase
             .from("profiles")
             .insert({
@@ -84,24 +93,13 @@ export function SignupForm({ onToggleMode }: SignupFormProps) {
             return
           }
 
-          console.log("User and profile created successfully!")
-          
-          // Wait for the session to be fully established
-          await new Promise(resolve => setTimeout(resolve, 2000))
-          
-          // Check if session is properly established
-          const { data: { session } } = await supabase.auth.getSession()
-          console.log("Session after signup:", session)
-          
-          if (session) {
-            // Force a page refresh to ensure middleware picks up the new session
-            window.location.href = "/dashboard"
-          } else {
-            setError("Session not established. Please try logging in.")
-          }
+          // After creating the account, send user to sign-in screen (not dashboard)
+          window.location.href = "/auth?signup=success"
+          return
         } else {
-          // Email confirmation required
-          setError("Please check your email and click the confirmation link to complete your registration. Once confirmed, you can log in with your credentials.")
+          // Email confirmation required; route to sign-in with notice
+          window.location.href = "/auth?signup=pending"
+          return
         }
       }
     } catch (err) {

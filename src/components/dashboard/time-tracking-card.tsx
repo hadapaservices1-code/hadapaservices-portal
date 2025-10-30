@@ -140,6 +140,9 @@ export function TimeTrackingCard({ userId, userName: _userName }: TimeTrackingCa
     return formatDuration(diffHours)
   }
 
+  // Add a derived state for whether employee has finished today
+  const hasClockedInAndOutToday = !timeStatus?.is_clocked_in && timeStatus?.today_total_hours > 0;
+
   return (
     <Card className="w-full">
       <CardHeader>

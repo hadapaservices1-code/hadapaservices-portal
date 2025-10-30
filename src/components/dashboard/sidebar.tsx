@@ -42,9 +42,24 @@ const employeeNavItems = [
   { name: "Profile", href: "/dashboard/profile", icon: Settings },
 ]
 
-const managerNavItems = [
+// Add a type for ManagerNavItem supporting children:
+type ManagerNavItem = {
+  name: string;
+  href?: string;
+  icon: typeof Users;
+  children?: { name: string; href: string; icon: typeof Users }[];
+};
+
+const managerNavItems: ManagerNavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Team", href: "/dashboard/team", icon: Users },
+  {
+    name: "Team",
+    icon: Users,
+    children: [
+      { name: "Team Members", href: "/dashboard/team", icon: Users },
+      { name: "My Team", href: "/dashboard/my-team", icon: Users }
+    ]
+  },
   { name: "Projects", href: "/dashboard/projects", icon: FolderOpen },
   { name: "Team Activity", href: "/dashboard/team-activity", icon: Activity },
   { name: "Time Tracking", href: "/dashboard/time-tracking", icon: Clock },
@@ -72,7 +87,7 @@ export function Sidebar({ userRole, userName, userDepartment }: SidebarProps) {
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
 
-  const navItems = userRole === "employee" ? employeeNavItems : managerNavItems
+  const navItems = userRole === "employee" ? employeeNavItems : managerNavItems;
 
   const handleSignOut = async () => {
     try {
@@ -190,45 +205,63 @@ export function Sidebar({ userRole, userName, userDepartment }: SidebarProps) {
 
             {/* Navigation */}
             <nav className="flex-1 p-4 pb-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/30 scrollbar-track-transparent min-h-0">
-              {navItems.map((item, index) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                
-                return (
-                  <motion.div
-                    key={item.name}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
-                  >
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        "flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 group relative overflow-hidden",
-                        isActive
-                          ? "bg-gradient-primary text-primary-foreground shadow-neon-lg"
-                          : "text-muted-foreground hover:text-foreground hover:bg-glass-bg hover:shadow-glass"
-                      )}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <motion.div
-                        whileHover={{ scale: 1.1, rotate: 3 }}
-                        transition={{ type: "spring", stiffness: 400 }}
+              {(navItems as any[]).map((item: any, index: number) => {
+                if (item.children) {
+                  const ParentIcon = item.icon;
+                  const isActiveGroup = item.children.some((child: any) => pathname === child.href);
+                  return (
+                    <motion.div key={item.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + index * 0.1 }}>
+                      <div className={cn(
+                        "flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium group relative overflow-hidden mt-2",
+                        isActiveGroup ? "bg-gradient-primary text-primary-foreground shadow-neon-lg" : "text-muted-foreground"
+                      )}>
+                        <ParentIcon className="h-4 w-4" />
+                        <span className="relative z-10">{item.name}</span>
+                      </div>
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.children.map((child: any, cIdx: number) => {
+                          const ChildIcon = child.icon;
+                          const isActive = pathname === child.href;
+                          return (
+                            <Link
+                              key={child.name}
+                              href={child.href as string}
+                              className={cn(
+                                "flex items-center space-x-2 px-3 py-1.5 rounded-md text-xs font-medium",
+                                isActive ? "bg-gradient-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-glass-bg"
+                              )}
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              <ChildIcon className="h-3 w-3" />
+                              <span>{child.name}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )
+                } else {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <motion.div key={item.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + index * 0.1 }}>
+                      <Link
+                        href={item.href as string}
+                        className={cn(
+                          "flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 group relative overflow-hidden",
+                          isActive ? "bg-gradient-primary text-primary-foreground shadow-neon-lg" : "text-muted-foreground hover:text-foreground hover:bg-glass-bg hover:shadow-glass"
+                        )}
+                        onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        <Icon className="h-4 w-4" />
-                      </motion.div>
-                      <span className="relative z-10">{item.name}</span>
-                      
-                      {/* Animated background effect */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-                        initial={{ x: "-100%" }}
-                        whileHover={{ x: "100%" }}
-                        transition={{ duration: 0.6 }}
-                      />
-                    </Link>
-                  </motion.div>
-                )
+                        <motion.div whileHover={{ scale: 1.1, rotate: 3 }} transition={{ type: "spring", stiffness: 400 }}>
+                          <Icon className="h-4 w-4" />
+                        </motion.div>
+                        <span className="relative z-10">{item.name}</span>
+                        <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" initial={{ x: "-100%" }} whileHover={{ x: "100%" }} transition={{ duration: 0.6 }} />
+                      </Link>
+                    </motion.div>
+                  )
+                }
               })}
             </nav>
 

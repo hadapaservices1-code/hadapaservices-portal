@@ -141,11 +141,24 @@ export function LoginForm({ onToggleMode }: LoginFormProps) {
         })
         
         if (session && session.user) {
-          console.log("Login successful, redirecting to dashboard")
-          // Use router.push for better navigation
-          window.location.href = "/dashboard"
+          // Sync session cookies with backend so middleware sees the user right away
+          try {
+            await fetch('/api/auth/set-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                access_token: session.access_token,
+                refresh_token: session.refresh_token,
+              }),
+              credentials: 'include',
+            });
+          } catch (e) {
+            // Non-fatal; fallback to redirect regardless
+          }
+          console.log("Login successful, redirecting to dashboard");
+          window.location.href = "/dashboard";
         } else {
-          setError("Session not established. Please try again.")
+          setError("Session not established. Please try again.");
         }
       } else {
         setError("Login failed. Please try again.")

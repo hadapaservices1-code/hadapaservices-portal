@@ -56,7 +56,12 @@ export async function updateSession(request: NextRequest) {
     console.log('Middleware - Redirecting to auth (no user)')
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
-    return NextResponse.redirect(url)
+    // Preserve auth cookies set on this request when redirecting
+    const redirectResponse = NextResponse.redirect(url)
+    supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+      redirectResponse.cookies.set(name, value)
+    })
+    return redirectResponse
   }
 
   // If user exists and trying to access auth pages, check if it's a sign out request
@@ -65,15 +70,22 @@ export async function updateSession(request: NextRequest) {
     const referer = request.headers.get('referer')
     const isSignOutRequest = (referer && referer.includes('/dashboard')) || 
                            request.nextUrl.searchParams.get('signout') === 'true'
+    // Also allow post-signup redirects to the auth page
+    const isPostSignup = !!request.nextUrl.searchParams.get('signup')
     
-    if (isSignOutRequest) {
-      console.log('Middleware - Allowing auth page access during sign out process')
+    if (isSignOutRequest || isPostSignup) {
+      console.log('Middleware - Allowing auth page access during sign out/signup process')
       return supabaseResponse
     } else {
       console.log('Middleware - Redirecting to dashboard (user exists)')
       const url = request.nextUrl.clone()
       url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
+      // Preserve auth cookies set on this request when redirecting
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(({ name, value }) => {
+        redirectResponse.cookies.set(name, value)
+      })
+      return redirectResponse
     }
   }
 

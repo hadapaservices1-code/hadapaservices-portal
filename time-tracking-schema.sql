@@ -99,13 +99,12 @@ DECLARE
   result JSON;
   existing_record RECORD;
 BEGIN
-  -- Check if user is already clocked in today
+  -- Already an open session today (clocked in, not clocked out)
   SELECT * INTO existing_record
-  FROM time_tracking 
-  WHERE user_id = user_uuid 
-    AND date = CURRENT_DATE
-    AND time_out IS NULL;
-  
+    FROM time_tracking
+    WHERE user_id = user_uuid
+      AND date = CURRENT_DATE
+      AND time_out IS NULL;
   IF existing_record IS NOT NULL THEN
     RETURN json_build_object(
       'success', false,
@@ -113,18 +112,30 @@ BEGIN
       'data', null
     );
   END IF;
-  
-  -- Insert or update time tracking record
+  -- Prevent repeat: already clocked in and out for today
+  IF EXISTS (
+    SELECT 1 FROM time_tracking
+    WHERE user_id = user_uuid
+      AND date = CURRENT_DATE
+      AND time_in IS NOT NULL
+      AND time_out IS NOT NULL
+  ) THEN
+    RETURN json_build_object(
+      'success', false,
+      'message', 'You have already completed your time tracking for today. You can clock in tomorrow.',
+      'data', null
+    );
+  END IF;
+  -- Normal clock in
   INSERT INTO time_tracking (user_id, date, time_in, status, notes)
   VALUES (user_uuid, CURRENT_DATE, NOW(), 'clocked_in', notes_text)
-  ON CONFLICT (user_id, date) 
+  ON CONFLICT (user_id, date)
   DO UPDATE SET 
     time_in = NOW(),
     status = 'clocked_in',
     notes = COALESCE(notes_text, time_tracking.notes),
     updated_at = NOW()
   RETURNING * INTO existing_record;
-  
   RETURN json_build_object(
     'success', true,
     'message', 'Successfully clocked in',
@@ -175,3 +186,12 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add a many-to-many manager-employee mapping table for advanced team management
+CREATE TABLE IF NOT EXISTS manager_employee (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  manager_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  employee_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  assigned_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(manager_id, employee_id)
+);
